@@ -2,7 +2,7 @@ from rest_framework import serializers
 import re
 from django.core.validators import RegexValidator
 
-from .models import CustomUser, Role, Parent, Teacher
+from .models import CustomUser, Role, Parent, Teacher, Student
 
 # Role Serializer
 class RoleSerializer(serializers.ModelSerializer):
@@ -178,3 +178,45 @@ class ParentSerializer(serializers.ModelSerializer):
         # create parent
         parent = Parent.objects.create(user=user, **validated_data)
         return parent
+    
+# Student serializer
+class StudentSerializer(serializers.ModelSerializer):
+
+    user = CustomUserSerializer()
+    parent_code = serializers.CharField()
+    parent_email = serializers.EmailField()
+    student_code = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = Student
+        fields = ['id', 'user', 'parent_code', 'parent_email', 'student_code']
+
+    # lfunction to check parent code and parent_email exist
+    def validate(self, data):
+        parent_email = data.get('parent_email')
+        parent_code = data.get('parent_code')
+
+        # check if a parent exists with both the matchiong code and email via related customuser
+        if not Parent.objects.filter(user__email=parent_email, parent_code=parent_code).exists():
+            raise serializers.ValidationError('Parent code and Email do not match or do not exist!')
+        return data
+
+    def create(self, validated_data):
+        user_data = validated_data.pop('user')
+        user_data.pop('confirm_password', None)
+
+        user_role = user_data.pop('role', None)
+        role_name = user_role.get('name')
+
+        # role name should be student only
+        if role_name != 'student':
+            raise serializers.ValidationError({'name': "Role should be a student"})
+        user_data['is_student'] = True
+        role, _ = Role.objects.get_or_create(name=role_name)
+
+        user_data['email'] = Student.generate_student_email(user_data['first_name'], user_data['last_name'])
+
+        user = CustomUser.objects.create_user(role=role, **user_data)
+
+        student = Student.objects.create(user=user, **validated_data)
+        return student

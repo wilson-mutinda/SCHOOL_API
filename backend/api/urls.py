@@ -10,4 +10,5 @@ urlpatterns = [
     path('role_info/<int:pk>/', views.retreive_update_delete_role_view, name='role_info'),
     path('create_teacher/', views.create_teacher_view, name='teacher'),
     path('create_parent/', views.create_parent_view, name='parent'),
+    path('create_student/', views.create_student_view, name='student'),
 ]

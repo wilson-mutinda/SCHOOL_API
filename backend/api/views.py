@@ -1,7 +1,7 @@
 from django.shortcuts import render, get_object_or_404
 
-from .models import CustomUser, Role, Parent, Teacher
-from .serializers import CustomUserSerializer, RoleSerializer, TeacherSerializer, ParentSerializer
+from .models import CustomUser, Role, Parent, Teacher, Student
+from .serializers import CustomUserSerializer, RoleSerializer, TeacherSerializer, ParentSerializer, StudentSerializer
 
 from rest_framework import response, status, permissions
 from rest_framework.decorators import api_view, permission_classes
@@ -140,4 +140,19 @@ def retreive_update_delete_custom_user_view(request, pk):
         custom_user_name = custom_user.username
         custom_user.delete()
         return response.Response({'message': f'{custom_user_name} deleted successfully!'}, status=status.HTTP_204_NO_CONTENT)
+    return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# Create a parent Class to have their priviledges
+class IsParent(permissions.BasePermission):
+    def has_permission(self, request, view):
+        return request.user.is_authenticated and request.user.is_parent
+
+# view to create and list student
+@api_view(['POST'])
+@permission_classes([IsParent])
+def create_student_view(request):
+    serializer = StudentSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return response.Response({'message': "Student Created Successfully!"}, status=status.HTTP_201_CREATED)
     return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
