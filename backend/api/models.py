@@ -295,3 +295,35 @@ class Exams(models.Model):
     def __str__(self):
         return f'{self.exam_name} (Code: {self.exam_code}) for {self.class_name}{self.stream_name}'
 
+# cat model
+class Cat(models.Model):
+    cat_teacher = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='cats')
+    cat_name = models.CharField(max_length=200)
+    class_name = models.ForeignKey(Class, on_delete=models.CASCADE, related_name='cat')
+    stream_name = models.ForeignKey(Stream, on_delete=models.CASCADE, related_name='cats')
+    content = models.TextField()
+    start_time = models.DateTimeField(null=True, blank=True)
+    end_time = models.DateTimeField(null=True, blank=True)
+    cat_code = models.CharField(max_length=100, unique=True)
+
+    # class method to generate the cat code
+    @classmethod
+    def generate_cat_code(cls):
+        last_cat = cls.objects.order_by('-id').first()
+
+        if last_cat and last_cat.cat_code:
+            last_code = int(last_cat.cat_code.split('-')[1])
+            next_code = last_code + 1
+        else:
+            next_code = 1
+
+        return f'C-{next_code:03d}'
+    
+    def __str__(self):
+        return f'{self.cat_name} ({self.cat_code})'
+    
+    def save(self, *args, **kwargs):
+        if not self.cat_code:
+            self.cat_code = self.generate_cat_code()
+        super().save(*args, **kwargs)
+        

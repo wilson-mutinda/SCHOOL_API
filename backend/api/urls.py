@@ -16,4 +16,5 @@ urlpatterns = [
     path('create_stream/', views.create_class_stream_view, name='stream'),
     path('create_announcement/', views.create_announcement_view, name='announcement'),
     path('create_exam/', views.create_exam_view, name='exam'),
+    path('create_cat/', views.create_cat_view, name='cat'),
 ]

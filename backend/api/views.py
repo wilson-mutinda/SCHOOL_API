@@ -1,9 +1,10 @@
 from django.shortcuts import render, get_object_or_404
 
-from .models import CustomUser, Role, Parent, Teacher, Student, Subject, Class, Stream, Announcement, Exams
+from .models import CustomUser, Role, Parent, Teacher, Student, Subject, Class, Stream, Announcement, Exams, Cat
 from .serializers import (
     CustomUserSerializer, RoleSerializer, TeacherSerializer, ParentSerializer, StudentSerializer,
-    SubjectSerializer, ClassSerializer, StreamSerializer, AnnouncementSerializer, ExamSerializer
+    SubjectSerializer, ClassSerializer, StreamSerializer, AnnouncementSerializer, ExamSerializer,
+    CatSerializer
 )
 
 from rest_framework import response, status, permissions
@@ -210,9 +211,20 @@ class IsTeacher(permissions.BasePermission):
 def create_exam_view(request):
     data = request.data.copy()
     data['exam_teacher'] = request.user.id
-    
+
     serializer = ExamSerializer(data=data)
     if serializer.is_valid():
         serializer.save()
         return response.Response({'message': 'Exam Created Successfully!'}, status=status.HTTP_201_CREATED)
+    return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# function to enable a teacher create a cat
+@api_view(['POST'])
+@permission_classes([IsTeacher])
+def create_cat_view(request):
+
+    serializer = CatSerializer(data=request.data, context={'request': request})
+    if serializer.is_valid():
+        serializer.save()
+        return response.Response({'message': 'CAT Created Successfully!', 'cat_code': serializer.instance.cat_code}, status=status.HTTP_201_CREATED)
     return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
