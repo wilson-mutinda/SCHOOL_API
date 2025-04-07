@@ -1,7 +1,10 @@
 from django.shortcuts import render, get_object_or_404
 
-from .models import CustomUser, Role, Parent, Teacher, Student
-from .serializers import CustomUserSerializer, RoleSerializer, TeacherSerializer, ParentSerializer, StudentSerializer
+from .models import CustomUser, Role, Parent, Teacher, Student, Subject, Class, Stream, Announcement, Exams
+from .serializers import (
+    CustomUserSerializer, RoleSerializer, TeacherSerializer, ParentSerializer, StudentSerializer,
+    SubjectSerializer, ClassSerializer, StreamSerializer, AnnouncementSerializer, ExamSerializer
+)
 
 from rest_framework import response, status, permissions
 from rest_framework.decorators import api_view, permission_classes
@@ -147,7 +150,7 @@ class IsParent(permissions.BasePermission):
     def has_permission(self, request, view):
         return request.user.is_authenticated and request.user.is_parent
 
-# view to create and list student
+# view to create and student
 @api_view(['POST'])
 @permission_classes([IsParent])
 def create_student_view(request):
@@ -155,4 +158,61 @@ def create_student_view(request):
     if serializer.is_valid():
         serializer.save()
         return response.Response({'message': "Student Created Successfully!"}, status=status.HTTP_201_CREATED)
+    return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# create subjects by an authenticated admin
+@api_view(['POST'])
+@permission_classes([IsAdmin])
+def create_subject_view(request):
+    serializer = SubjectSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return response.Response({'message': 'Subject Created Successfully!'}, status=status.HTTP_201_CREATED)
+    return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# create class by an authorized admin
+@api_view(['POST'])
+@permission_classes([IsAdmin])
+def create_class_view(request):
+    serializer = ClassSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return response.Response({'message': 'Class Created Successfully!'}, status=status.HTTP_201_CREATED)
+    return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# create a class stream by an authorized admin
+@api_view(['POST'])
+@permission_classes([IsAdmin])
+def create_class_stream_view(request):
+    serializer = StreamSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return response.Response({'message': 'Stream Created Successfully'}, status=status.HTTP_201_CREATED)
+    return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# create an announcement by an authorized admin
+@api_view(['POST'])
+@permission_classes([IsAdmin])
+def create_announcement_view(request):
+    serializer = AnnouncementSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save(created_by=request.user)
+        return response.Response({'message': 'Announcement Created Successfully!'}, status=status.HTTP_201_CREATED)
+    return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# class method to give a teacher priviledges
+class IsTeacher(permissions.BasePermission):
+    def has_permission(self, request, view):
+        return request.user.is_authenticated and request.user.is_teacher
+
+@api_view(['POST'])
+@permission_classes([IsTeacher])
+def create_exam_view(request):
+    data = request.data.copy()
+    data['exam_teacher'] = request.user.id
+    
+    serializer = ExamSerializer(data=data)
+    if serializer.is_valid():
+        serializer.save()
+        return response.Response({'message': 'Exam Created Successfully!'}, status=status.HTTP_201_CREATED)
     return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

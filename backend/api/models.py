@@ -1,5 +1,8 @@
 from django.db import models
 from django.utils import timezone
+from datetime import timedelta
+from django.conf import settings
+from django.contrib.auth import get_user_model
 
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 
@@ -175,3 +178,120 @@ class Student(models.Model):
         if not self.user_id:
             self.user.email = self.generate_student_email(self.user.first_name, self.user.last_name)
         super().save(*args, **kwargs)
+
+# Subject model
+class Subject(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+
+    def __str__(self):
+        return self.name
+    
+# Class models
+class Class(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+
+    def __str__(self):
+        return self.name
+    
+# Stream models
+class Stream(models.Model):
+    class_name = models.ForeignKey(Class, on_delete=models.CASCADE, related_name='streams')
+    name = models.CharField(max_length=100, unique=True)
+    stream_name = models.CharField(max_length=10, unique=True, blank=True)
+
+    # static method/helper to create a stream
+    @staticmethod
+    def create_stream_name(class_name, name):
+        return f'{class_name}{name}'
+
+    def __str__(self):
+        return f'{self.class_name.name}{self.name}'
+    
+    def save(self, *args, **kwargs):
+        if not self.stream_name:
+            self.stream_name = self.create_stream_name(self.class_name.name, self.name)
+        super().save(*args, **kwargs)
+    
+# Anouncement model
+class Announcement(models.Model):
+    title = models.CharField(max_length=100)
+    description = models.TextField()
+    date_created = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='announcements')
+
+    target_teachers = models.BooleanField(default=False)
+    target_admins = models.BooleanField(default=False)
+    target_parents = models.BooleanField(default=False)
+    target_students = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f'{self.title} created by {self.created_by.username}'
+    
+# Exams Model
+class Exams(models.Model):
+    exam_teacher = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='exams')
+    exam_name = models.CharField(max_length=200)
+    class_name = models.ForeignKey(Class, on_delete=models.CASCADE, related_name='exams')
+    stream_name = models.ForeignKey(Stream, on_delete=models.CASCADE, related_name='exams')
+    content = models.TextField()
+    exam_date = models.DateTimeField()
+    duration = models.DurationField(default=timedelta(hours=2))
+    time_taken = models.DurationField(null=True, blank=True)
+    start_time = models.DateTimeField(null=True, blank=True)
+    end_time = models.DateTimeField(null=True, blank=True)
+    date_created = models.DateTimeField(auto_now_add=True)
+    exam_code = models.CharField(max_length=100, unique=True)
+
+    # method to generate an exam code
+    @classmethod
+    def generate_exam_code(cls):
+        last_exam = cls.objects.order_by('-id').first()
+        if last_exam and last_exam.exam_code:
+            last_code = int(last_exam.exam_code.split('-')[1])
+            next_code = last_code + 1
+        else:
+            next_code = 1
+        return f'E-{next_code:03d}'
+    
+    def save(self, *args, **kwargs):
+        if not self.exam_code:
+            self.exam_code = self.generate_exam_code()
+
+        # set default duration to 2 hours if not specified
+        if not self.duration:
+            self.duration = timedelta(hours=2)
+
+        super().save(*args, **kwargs)
+
+    # start exam
+    def start_exam(self):
+        # called when an exam starts
+        self.start_time = timezone.now()
+        self.save()
+
+    # end exam
+    def end_exam(self):
+        # called when an exam ends
+        if self.start_time:
+            self.end_time = timezone.now()
+            self.time_taken = self.end_time - self.start_time
+            self.save()
+        else:
+            raise ValueError('Exam must be started before it can be ended!')
+        
+    # time remaining
+    def time_remaining(self):
+        if self.start_time and not self.end_time:
+            elapsed = timezone.now() - self.start_time
+            return self.duration - elapsed
+        return timedelta(0)
+    
+    def is_active(self):
+        # check if exam is currently active
+        now = timezone.now()
+        return (self.start_time and not self.end_time and now >= self.start_time and now <= (self.start_time + self.duration))
+
+
+    def __str__(self):
+        return f'{self.exam_name} (Code: {self.exam_code}) for {self.class_name}{self.stream_name}'
+

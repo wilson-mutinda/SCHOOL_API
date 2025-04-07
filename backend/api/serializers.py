@@ -1,8 +1,9 @@
 from rest_framework import serializers
 import re
 from django.core.validators import RegexValidator
+from datetime import timedelta
 
-from .models import CustomUser, Role, Parent, Teacher, Student
+from .models import CustomUser, Role, Parent, Teacher, Student, Subject, Class, Stream, Announcement, Exams
 
 # Role Serializer
 class RoleSerializer(serializers.ModelSerializer):
@@ -220,3 +221,133 @@ class StudentSerializer(serializers.ModelSerializer):
 
         student = Student.objects.create(user=user, **validated_data)
         return student
+    
+# Subject Serializer
+class SubjectSerializer(serializers.ModelSerializer):
+
+    name = serializers.CharField()
+    class Meta:
+        model = Subject
+        fields = ['id', 'name']
+
+    # Ensure only valid subject names are saved
+    def validate_name(self, name):
+        expected_names = ['maths', 'kiswahili', 'english', 'chemistry', 'physics', 'biology', 'history', 'geography', 'CRE', 'business studies', 'agriculture', 'computer studies']
+        if name.lower() not in expected_names:
+            raise serializers.ValidationError({'name': f'Invalid Subject Name, Instead use {', '.join(expected_names)}'})
+        return name.capitalize()
+    
+    # create a subject and save in  the dbase
+    def create(self, validated_data):
+        return super().create(validated_data)
+    
+# class serializer
+class ClassSerializer(serializers.ModelSerializer):
+
+    name = serializers.CharField()
+    class Meta:
+        model = Class
+        fields = ['id', 'name']
+
+    # validate class names
+    def validate_name(self, name):
+        expected_class_names = ['f1', 'f2', 'f3', 'f4']
+        if name.lower() not in expected_class_names:
+            raise serializers.ValidationError({'name': f'Invalid class names! Instead use {', '.join(expected_class_names)}'})
+        return name.capitalize()
+    
+# stream serializer
+class StreamSerializer(serializers.ModelSerializer):
+
+    class_name = ClassSerializer()
+    stream_name = serializers.CharField(read_only=True)
+    class Meta:
+        model = Stream
+        fields = ['id', 'class_name', 'name', 'stream_name']
+
+    # vlaidate the stream names
+    def validate_name(self, name):
+        expected_stream_name = ['e', 'w']
+        if name.lower() not in expected_stream_name:
+            raise serializers.ValidationError({'name': f'Invalid stream name!Instead use {', '.join(expected_stream_name)}'})
+        return name.capitalize()
+    
+    # create a stream with its class name
+    def create(self, validated_data):
+        class_data = validated_data.pop('class_name')
+        class_name_value = class_data.get('name')
+
+        try:
+            class_instance = Class.objects.get(name__iexact=class_name_value)
+        except Class.DoesNotExist:
+            raise serializers.ValidationError({'class_name': f'Class "{class_name_value}" does not exist.'})
+        
+        # capitalize and validate the strem name
+        stream_name = validated_data.get('name').capitalize()
+
+        # create a stream
+        stream = Stream.objects.create(class_name=class_instance, name=stream_name)
+        return stream
+    
+# Announcement Serializer
+class AnnouncementSerializer(serializers.ModelSerializer):
+
+    title = serializers.CharField()
+    description = serializers.CharField()
+    date_created = serializers.DateTimeField(read_only=True, format="%Y-%m-%d %H:%M")
+    created_by = serializers.CharField(source = 'created_by.username', read_only=True)
+
+    class Meta:
+        model = Announcement
+        fields = ['id', 'title', 'description', 'date_created', 'created_by', 'target_teachers', 'target_students','target_admins', 'target_parents']
+
+    def create(self, validated_data):
+        # default to false if not provided
+        validated_data['target_parents'] = validated_data.get('target_parents', False)
+        validated_data['target_students'] = validated_data.get('target_students', False)
+        validated_data['target_admins'] = validated_data.get('target_admins', False)
+        validated_data['target_teachers'] = validated_data.get('target_teachers', False)
+
+        return super().create(validated_data)
+
+# exam serializer  
+class ExamSerializer(serializers.ModelSerializer):
+    # Display only
+    exam_teacher_display = serializers.CharField(source='exam_teacher.teachers.teacher_code', read_only=True)
+
+    class_name = ClassSerializer(read_only=True)
+    stream_name = StreamSerializer(read_only=True)
+    class_name_id = serializers.PrimaryKeyRelatedField(queryset=Class.objects.all(), write_only=True, source='class_name')
+    stream_name_id = serializers.PrimaryKeyRelatedField(queryset=Stream.objects.all(), write_only=True, source='stream_name')
+
+    # Writable teacher field
+    exam_teacher = serializers.PrimaryKeyRelatedField(queryset=CustomUser.objects.all(), write_only=True)
+
+    duration = serializers.DurationField(default=timedelta(hours=2))
+    time_taken = serializers.DurationField(read_only=True)
+    time_remaining = serializers.SerializerMethodField(read_only=True)
+    is_active = serializers.SerializerMethodField(read_only=True)
+    teacher_code = serializers.SerializerMethodField()
+    date_created = serializers.DateTimeField(read_only=True, format="%Y-%m-%d %H:%M")
+    exam_code = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = Exams
+        fields = [
+            'id', 'exam_teacher', 'exam_teacher_display', 'teacher_code', 'exam_name',
+            'class_name', 'stream_name', 'class_name_id', 'stream_name_id',
+            'content', 'exam_date', 'duration', 'time_taken', 'time_remaining',
+            'is_active', 'start_time', 'end_time', 'date_created', 'exam_code'
+        ]
+
+    def get_teacher_code(self, obj):
+        if hasattr(obj.exam_teacher, 'teachers'):
+            return obj.exam_teacher.teachers.teacher_code
+        return None
+
+    def get_time_remaining(self, obj):
+        return obj.time_remaining().total_seconds() if obj.time_remaining() else None
+
+    def get_is_active(self, obj):
+        return obj.is_active()
+

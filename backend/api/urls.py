@@ -11,4 +11,9 @@ urlpatterns = [
     path('create_teacher/', views.create_teacher_view, name='teacher'),
     path('create_parent/', views.create_parent_view, name='parent'),
     path('create_student/', views.create_student_view, name='student'),
+    path('create_subject/', views.create_subject_view, name='subject'),
+    path('create_class/', views.create_class_view, name='class'),
+    path('create_stream/', views.create_class_stream_view, name='stream'),
+    path('create_announcement/', views.create_announcement_view, name='announcement'),
+    path('create_exam/', views.create_exam_view, name='exam'),
 ]
