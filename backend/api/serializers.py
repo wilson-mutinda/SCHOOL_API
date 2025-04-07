@@ -1,10 +1,10 @@
 from rest_framework import serializers
 import re
 from django.core.validators import RegexValidator
-from datetime import timedelta, date
+from datetime import timedelta, date, datetime
 from django.utils import timezone
 
-from .models import CustomUser, Role, Parent, Teacher, Student, Subject, Class, Stream, Announcement, Exams, Cat
+from .models import CustomUser, Role, Parent, Teacher, Student, Subject, Class, Stream, Announcement, Exams, Cat, Examination
 
 # Role Serializer
 class RoleSerializer(serializers.ModelSerializer):
@@ -365,13 +365,14 @@ class CatSerializer(serializers.ModelSerializer):
     stream_name_id = serializers.PrimaryKeyRelatedField(queryset=Stream.objects.all(), write_only=True, source='stream_name')
 
     content = serializers.CharField()
+    cat_date = serializers.DateField()
     start_time = serializers.DateTimeField()
     end_time = serializers.DateTimeField()
     cat_code = serializers.CharField(read_only=True)
 
     class Meta:
         model = Cat
-        fields = ['id', 'cat_teacher', 'cat_name', 'class_name', 'stream_name', 'class_name_id', 'stream_name_id', 'content', 'start_time', 'end_time', 'cat_code']
+        fields = ['id', 'cat_teacher', 'cat_name', 'class_name', 'stream_name', 'class_name_id', 'stream_name_id', 'content', 'cat_date', 'start_time', 'end_time', 'cat_code']
 
     # validate start time
     def validate_start_time(self, start_time):
@@ -386,6 +387,12 @@ class CatSerializer(serializers.ModelSerializer):
         if end_time < now:
             raise serializers.ValidationError('End time should be in future!')
         return end_time
+    
+    # validate cat dates
+    def validate_cat_date(self, cat_date):
+        today = date.today()
+        if cat_date < today:
+            raise serializers.ValidationError({'cat_date': 'Cat cannot be in past!'})
 
     # validate start time and end time
     def validate(self, data):
@@ -399,3 +406,68 @@ class CatSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data['cat_teacher'] = self.context['request'].user
         return super().create(validated_data)
+    
+# Examination serializer
+class ExaminationSerializer(serializers.ModelSerializer):
+
+    exam_name = serializers.CharField()
+    exam_teacher = serializers.CharField(source='exam_teacher.teachers.teacher_code', read_only=True)
+
+    class_name = ClassSerializer(read_only=True)
+    stream_name = StreamSerializer(read_only=True)
+    
+    class_name_id = serializers.PrimaryKeyRelatedField(queryset=Class.objects.all(), write_only=True, source='class_name')
+    stream_name_id = serializers.PrimaryKeyRelatedField(queryset=Stream.objects.all(), write_only=True, source='stream_name')
+
+    exam_date = serializers.DateField()
+    start_time = serializers.TimeField()
+    end_time = serializers.TimeField()
+    content = serializers.CharField()
+    exam_code = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = Examination
+        fields = ['id', 'exam_name', 'exam_teacher', 'class_name', 'stream_name', 'class_name_id', 'stream_name_id', 'exam_date', 'start_time', 'end_time', 'content', 'exam_code']
+
+    # validate start time
+    def validate_start_time(self, start_time):
+        return start_time
+    
+    # validate end time
+    def validate_end_time(self, end_time):
+        return end_time
+        
+    def validate(self, data):
+        exam_date = data['exam_date']
+        start_time = data['start_time']
+        end_time = data['end_time']
+
+        start = datetime.combine(exam_date, start_time)
+        end = datetime.combine(exam_date, end_time)
+
+        # Make start and end timezone-aware
+        if timezone.is_naive(start):
+            start = timezone.make_aware(start)
+        if timezone.is_naive(end):
+            end = timezone.make_aware(end)
+
+        now = timezone.now()
+
+        if start < now:
+            raise serializers.ValidationError({'start_time': 'Invalid Date Configuration. Please retry!'})
+
+        if end < now:
+            raise serializers.ValidationError({'end_time': 'Invalid Date Configuration!'})
+
+        if start >= end:
+            raise serializers.ValidationError({'start_time': 'Start time must be before the end time!'})
+
+        if (end - start) > timedelta(hours=2):
+            raise serializers.ValidationError('Exam can only last a maximum of 2 hours!')
+
+        return data
+    
+    def create(self, validated_data):
+        validated_data['exam_teacher'] = self.context['request'].user
+        return super().create(validated_data)
+    

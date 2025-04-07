@@ -302,6 +302,7 @@ class Cat(models.Model):
     class_name = models.ForeignKey(Class, on_delete=models.CASCADE, related_name='cat')
     stream_name = models.ForeignKey(Stream, on_delete=models.CASCADE, related_name='cats')
     content = models.TextField()
+    cat_date = models.DateField()
     start_time = models.DateTimeField(null=True, blank=True)
     end_time = models.DateTimeField(null=True, blank=True)
     cat_code = models.CharField(max_length=100, unique=True)
@@ -326,4 +327,34 @@ class Cat(models.Model):
         if not self.cat_code:
             self.cat_code = self.generate_cat_code()
         super().save(*args, **kwargs)
-        
+
+# Examination model
+class Examination(models.Model):
+    exam_name = models.CharField(max_length=100)
+    exam_teacher = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='examinations')
+    class_name = models.ForeignKey(Class, on_delete=models.CASCADE, related_name='examinations')
+    stream_name = models.ForeignKey(Stream, on_delete=models.CASCADE, related_name='examinations')
+    exam_date = models.DateField()
+    start_time = models.TimeField()
+    end_time = models.TimeField()
+    content = models.TextField()
+    exam_code = models.CharField(max_length=10, unique=True)
+
+    # generate a unique examination code
+    @classmethod
+    def generate_exam_code(cls):
+        last_exam = cls.objects.order_by('-id').first()
+        if last_exam and last_exam.exam_code:
+            last_code = int(last_exam.exam_code.split('-')[1])
+            next_code = last_code + 1
+        else:
+            next_code = 1
+        return f'E-{next_code:03d}'
+    
+    def save(self, *args, **kwargs):
+        if not self.exam_code:
+            self.exam_code = self.generate_exam_code()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f'{self.exam_name} ({self.exam_code})'
