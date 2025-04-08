@@ -1,10 +1,10 @@
 from django.shortcuts import render, get_object_or_404
 
-from .models import CustomUser, Role, Parent, Teacher, Student, Subject, Class, Stream, Announcement, Exams, Cat, Examination
+from .models import CustomUser, Role, Parent, Teacher, Student, Subject, Class, Stream, Announcement, Exams, Cat, Examination, CatResults, CatGrading, ExamGrading
 from .serializers import (
     CustomUserSerializer, RoleSerializer, TeacherSerializer, ParentSerializer, StudentSerializer,
     SubjectSerializer, ClassSerializer, StreamSerializer, AnnouncementSerializer, ExamSerializer,
-    CatSerializer, ExaminationSerializer
+    CatSerializer, ExaminationSerializer, CatResultSerializer, CatGradingSerializer, ExamGradingSerializer
 )
 
 from rest_framework import response, status, permissions
@@ -237,4 +237,40 @@ def create_examination_view(request):
     if serializer.is_valid():
         serializer.save()
         return response.Response({'message': 'Examination Created successfully!'}, status=status.HTTP_201_CREATED)
+    return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# function to mark the cat by an authorized teacher
+@api_view(['POST'])
+@permission_classes([IsTeacher])
+def create_cat_results_view(request):
+    serializer = CatResultSerializer(data=request.data, context={'request': request})
+    if serializer.is_valid():
+        serializer.save()
+        return response.Response({'message': 'CatResult Created Successfully!'}, status=status.HTTP_201_CREATED)
+    return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# function to calculate multiple subjects
+@api_view(['POST'])
+@permission_classes([IsTeacher])
+def create_multiple_cat_results_view(request):
+    serializer = CatGradingSerializer(data=request.data, context={'request': request})
+    if serializer.is_valid():
+        graded_subjects = serializer.save()
+        return response.Response({
+            'message': 'CAT results graded successfully!',
+            'graded_subjects': [str(result) for result in graded_subjects]
+        }, status=status.HTTP_201_CREATED)
+    return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+# grade an exam with the provided details
+@api_view(['POST'])
+@permission_classes([IsTeacher])
+def create_exam_result_view(request):
+    serializer = ExamGradingSerializer(data=request.data, context={'request': request})
+    if serializer.is_valid():
+        serializer.save()
+        return response.Response({
+            'message': 'Exam Grading Successful'
+        }, status=status.HTTP_200_OK)
     return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

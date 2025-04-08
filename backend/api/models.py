@@ -358,3 +358,166 @@ class Examination(models.Model):
 
     def __str__(self):
         return f'{self.exam_name} ({self.exam_code})'
+
+# cat result model
+class CatResults(models.Model):
+    marks = models.IntegerField()
+    grade = models.CharField(max_length=10)
+
+    cat_name = models.ForeignKey(Cat, on_delete=models.CASCADE, related_name='cat_results')
+    cat_teacher = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='results')
+    cat_student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='cat_results')
+    cat_subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name='cat_results')
+
+    # function to calculate the grade of a subject
+    def calculate_subject_grade(self):
+        marks = self.marks
+
+        # calculate marks out of 30 and convert it to a percentage
+        grading = ((marks/30) * 100)
+
+        if grading >= 80:
+            return 'A'
+        
+        elif grading >= 70:
+            return 'B'
+        
+        elif grading >= 60:
+            return 'B-'
+        
+        elif grading >= 50:
+            return 'C+'
+        
+        elif grading >=40:
+            return 'C'
+        
+        elif grading >= 35:
+            return 'D'
+        
+        elif grading >= 30:
+            return 'D-'
+        
+        elif grading >=20:
+            return 'E'
+        
+        else:
+            return 'FAIL'
+        
+    def save(self, *args, **kwargs):
+        self.grade = self.calculate_subject_grade()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f'{self.cat_student} - {self.cat_name} - {self.cat_subject}'
+
+# Cat Grading 
+class CatGrading(models.Model):
+    cat_name = models.ForeignKey(Cat, on_delete=models.CASCADE, related_name='cat_grading')
+    cat_teacher = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='grading')
+    cat_student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='cat_grading')
+    cat_subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name='cat_grading')
+
+    cat_marks = models.IntegerField()
+    cat_grade = models.CharField(max_length=10, blank=True, null=True)
+
+    is_english = models.BooleanField(default=False)
+    is_maths = models.BooleanField(default=False)
+    is_kiswahili = models.BooleanField(default=False)
+
+    is_chemistry = models.BooleanField(default=False)
+    is_physics = models.BooleanField(default=False)
+    is_biology = models.BooleanField(default=False)
+
+    is_history = models.BooleanField(default=False)
+    is_geography = models.BooleanField(default=False)
+    is_cre = models.BooleanField(default=False)
+
+    is_business_studies = models.BooleanField(default=False)
+    is_agriculture = models.BooleanField(default=False)
+    is_computer_studies = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f'{self.cat_name} - {self.cat_student.student_code} {self.cat_marks}'
+    
+    # calculate the grade of a given subject
+    def calculate_final_grade(self):
+        marks = self.cat_marks
+        percentage = ((marks/30) * 100)
+
+        if percentage >= 70:
+            return 'A'
+        
+        elif percentage >= 60:
+            return 'B'
+        
+        elif percentage >= 50:
+            return 'C'
+        
+        elif percentage >= 40:
+            return 'D'
+        
+        elif percentage >= 30:
+            return 'E'
+        
+        else:
+            return 'FAIL'
+        
+    def save(self, *args, **kwargs):
+        self.cat_grade = self.calculate_final_grade()
+        super().save(*args, **kwargs)
+
+# class to calculate the grade of an exam, then save it as true in dbase
+class ExamGrading(models.Model):
+    exam_name = models.ForeignKey(Exams, on_delete=models.CASCADE, related_name='exam_grading')
+    exam_teacher = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='exam_grading')
+    exam_student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='exam_grade')
+    exam_subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name='exam_grading')
+
+    exam_marks = models.IntegerField()
+    exam_grade = models.CharField(max_length=10)
+
+    is_english = models.BooleanField(default=False)
+    is_maths = models.BooleanField(default=False)
+    is_kiswahili = models.BooleanField(default=False)
+
+    is_chemistry = models.BooleanField(default=False)
+    is_physics = models.BooleanField(default=False)
+    is_biology = models.BooleanField(default=False)
+
+    is_history = models.BooleanField(default=False)
+    is_geography = models.BooleanField(default=False)
+    is_cre = models.BooleanField(default=False)
+
+    is_business_studies = models.BooleanField(default=False)
+    is_agriculture = models.BooleanField(default=False)
+    is_computer_studies = models.BooleanField(default=False)
+
+    # function to calculate the grade out of 70
+    def calculate_exam_grade(self):
+        exam_marks = self.exam_marks
+        percentage = ((exam_marks / 100) * 70)
+
+        if percentage >= 70:
+            return 'A'
+        
+        elif percentage >= 60:
+            return 'B'
+        
+        elif percentage >= 50:
+            return 'C'
+        
+        elif percentage >= 40:
+            return 'D'
+        
+        elif percentage >= 30:
+            return 'E'
+        
+        else:
+            return 'FAIL'
+        
+    def save(self, *args, **kwargs):
+        self.exam_grade = self.calculate_exam_grade()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f'{self.exam_name} -{self.exam_subject} ({self.exam_grade})'

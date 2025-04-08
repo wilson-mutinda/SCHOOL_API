@@ -4,7 +4,12 @@ from django.core.validators import RegexValidator
 from datetime import timedelta, date, datetime
 from django.utils import timezone
 
-from .models import CustomUser, Role, Parent, Teacher, Student, Subject, Class, Stream, Announcement, Exams, Cat, Examination
+from .models import (
+    CustomUser, Role, Parent, Teacher, 
+    Student, Subject, Class, Stream, 
+    Announcement, Exams, Cat, Examination, 
+    CatResults, CatGrading, ExamGrading
+)
 
 # Role Serializer
 class RoleSerializer(serializers.ModelSerializer):
@@ -471,3 +476,149 @@ class ExaminationSerializer(serializers.ModelSerializer):
         validated_data['exam_teacher'] = self.context['request'].user
         return super().create(validated_data)
     
+
+# Cat Result serializer
+class CatResultSerializer(serializers.ModelSerializer):
+
+    marks = serializers.IntegerField()
+    grade = serializers.CharField(read_only=True)
+
+    cat_name = CatSerializer(read_only=True)
+    cat_name_id = serializers.PrimaryKeyRelatedField(queryset=Cat.objects.all(), write_only=True, source='cat_name')
+
+    cat_teacher = serializers.CharField(source='cat_teacher.teachers.teacher_code', read_only=True)
+
+    cat_student = serializers.CharField(source='cat_student.students.student_code', read_only=True)
+    cat_student_code = serializers.CharField(write_only=True)
+
+    cat_subject = SubjectSerializer(read_only=True)
+    cat_subject_id = serializers.PrimaryKeyRelatedField(queryset=Subject.objects.all(), source='cat_subject', write_only=True)
+
+    class Meta:
+        model = CatResults
+        fields = ['id', 'marks', 'grade', 'cat_name', 'cat_name_id', 'cat_teacher', 'cat_student', 'cat_student_code', 'cat_subject', 'cat_subject_id']
+
+    # validate marks to below at most 30
+    def validate_marks(self, marks):
+        if marks <= 0 or marks >30:
+            raise serializers.ValidationError({'marks': 'Invalid Marks!'})
+        return marks
+    
+    def create(self, validated_data):
+        # extract and remove student_code from validated_data
+        student_code = validated_data.pop('cat_student_code')
+
+        try:
+            student = Student.objects.get(student_code=student_code)
+        except Student.DoesNotExist:
+            raise serializers.ValidationError({'cat_student_code': 'Student with this code does not exist!'})
+        
+        # assign actual objects to required fields
+        validated_data['cat_student'] = student
+        validated_data['cat_teacher'] = self.context['request'].user
+        return super().create(validated_data)
+
+# Cat Grading Serailizer
+class CatGradingSerializer(serializers.Serializer):
+
+    cat_name_id = serializers.PrimaryKeyRelatedField(queryset=Cat.objects.all())
+    cat_student_code = serializers.CharField()
+    subjects = serializers.ListField(
+        child = serializers.DictField(
+            child=serializers.IntegerField(),
+        ),
+        help_text = 'List of subjects with subject_id and cat_marks'
+    )
+
+    def validate(self, data):
+        if not data.get('subjects'):
+            raise serializers.ValidationError('At least one subject is required!')
+        return data
+    
+    def create(self, validated_data):
+        cat_name = validated_data['cat_name_id']
+        student_code = validated_data['cat_student_code']
+        subject_data_list = validated_data['subjects']
+        teacher = self.context['request'].user
+
+        try:
+            student = Student.objects.get(student_code=student_code)
+        except Student.DoesNotExist:
+            raise serializers.ValidationError({'cat_student_code': 'Invalid Student Code'})
+        
+        graded_subjects = []
+
+        for entry in subject_data_list:
+            subject_id = entry.get('subject_id')
+            marks = entry.get('cat_marks')
+
+            try:
+                subject = Subject.objects.get(id=subject_id)
+            except Subject.DoesNotExist:
+                raise serializers.ValidationError({'subject_id': f'Subject ID {subject_id} not found'})
+            
+            grading = CatGrading.objects.create(
+                cat_name=cat_name,
+                cat_teacher = teacher,
+                cat_student = student,
+                cat_subject = subject,
+                cat_marks = marks
+            )
+            graded_subjects.append(grading)
+        return graded_subjects
+    
+# serializer to handle examGrading
+class ExamGradingSerializer(serializers.ModelSerializer):
+
+    exam_name = ExamSerializer(read_only=True)
+    exam_name_id = serializers.PrimaryKeyRelatedField(queryset=Exams.objects.all(), source='exam_name', write_only=True)
+
+    exam_teacher = serializers.CharField(source='exam_teacher.teachers.teacher_code', read_only=True)
+
+    exam_student = StudentSerializer(read_only=True)
+    exam_student_code = serializers.CharField(write_only=True)
+
+    exam_subject = ExamSerializer(read_only=True)
+    exam_subject_id = serializers.PrimaryKeyRelatedField(queryset=Subject.objects.all(), source='exam_subject', write_only=True)
+
+    exam_marks = serializers.IntegerField()
+    exam_grade = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = ExamGrading
+        fields = [
+            'id', 'exam_name', 'exam_name_id', 'exam_teacher', 'exam_student', 
+            'exam_student_code', 'exam_subject', 'exam_subject_id', 'exam_marks', 'exam_grade', 
+            'is_english',
+            'is_maths', 'is_kiswahili', 'is_chemistry', 'is_physics',
+            'is_biology', 'is_history', 'is_geography', 'is_cre',
+            'is_business_studies', 'is_agriculture', 'is_computer_studies'
+        ]
+
+    # ensure marks are ented and must be more than 0 and less or equal to 100
+    def validate_exam_marks(self, marks):
+        if not marks:
+            raise serializers.ValidationError({'exam_marks': 'Exam Marks Must be provided!'})
+        
+        if marks <= 0:
+            raise serializers.ValidationError({'exam_marks': 'Exam Marks should be more than 0!'})
+        
+        if marks > 100:
+            raise serializers.ValidationError({'exam_marks': 'Exam Marks cannot be more than 100!'})
+        
+        return marks
+    
+    def create(self, validated_data):
+
+        # extract student code and ensure its valid
+        student_code = validated_data.pop('exam_student_code')
+
+        try:
+            student = Student.objects.get(student_code = student_code)
+        except Student.DoesNotExist:
+            raise serializers.ValidationError({'cat_student_code': 'Student with the code does not exist!'})
+        
+        validated_data['exam_student'] = student
+        validated_data['exam_teacher'] = self.context['request'].user
+        return super().create(validated_data)
+
