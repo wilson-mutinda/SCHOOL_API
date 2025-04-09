@@ -1,6 +1,6 @@
 from django.db import models
 from django.utils import timezone
-from datetime import timedelta
+from datetime import timedelta, datetime
 from django.conf import settings
 from django.contrib.auth import get_user_model
 
@@ -132,12 +132,20 @@ class Parent(models.Model):
             self.parent_code = self.generate_parent_code()
         super().save(*args, **kwargs)
 
+# Subject model
+class Subject(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+
+    def __str__(self):
+        return self.name
+
 # student model
 class Student(models.Model):
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='students')
     parent_code = models.CharField(max_length=100, unique=True)
     parent_email = models.EmailField(unique=True)
     student_code = models.CharField(max_length=100, unique=True)
+    subjects = models.ManyToManyField(Subject, related_name='students')
 
     # class method to calculate student code
     @classmethod
@@ -178,13 +186,6 @@ class Student(models.Model):
         if not self.user_id:
             self.user.email = self.generate_student_email(self.user.first_name, self.user.last_name)
         super().save(*args, **kwargs)
-
-# Subject model
-class Subject(models.Model):
-    name = models.CharField(max_length=100, unique=True)
-
-    def __str__(self):
-        return self.name
     
 # Class models
 class Class(models.Model):
@@ -196,7 +197,7 @@ class Class(models.Model):
 # Stream models
 class Stream(models.Model):
     class_name = models.ForeignKey(Class, on_delete=models.CASCADE, related_name='streams')
-    name = models.CharField(max_length=100, unique=True)
+    name = models.CharField(max_length=100)
     stream_name = models.CharField(max_length=10, unique=True, blank=True)
 
     # static method/helper to create a stream
@@ -212,7 +213,7 @@ class Stream(models.Model):
             self.stream_name = self.create_stream_name(self.class_name.name, self.name)
         super().save(*args, **kwargs)
     
-# Anouncement model
+# Announcement model
 class Announcement(models.Model):
     title = models.CharField(max_length=100)
     description = models.TextField()
@@ -226,199 +227,79 @@ class Announcement(models.Model):
 
     def __str__(self):
         return f'{self.title} created by {self.created_by.username}'
-    
-# Exams Model
-class Exams(models.Model):
-    exam_teacher = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='exams')
-    exam_name = models.CharField(max_length=200)
-    class_name = models.ForeignKey(Class, on_delete=models.CASCADE, related_name='exams')
-    stream_name = models.ForeignKey(Stream, on_delete=models.CASCADE, related_name='exams')
-    content = models.TextField()
-    exam_date = models.DateTimeField()
-    duration = models.DurationField(default=timedelta(hours=2))
-    time_taken = models.DurationField(null=True, blank=True)
-    start_time = models.DateTimeField(null=True, blank=True)
-    end_time = models.DateTimeField(null=True, blank=True)
-    date_created = models.DateTimeField(auto_now_add=True)
-    exam_code = models.CharField(max_length=100, unique=True)
 
-    # method to generate an exam code
-    @classmethod
-    def generate_exam_code(cls):
-        last_exam = cls.objects.order_by('-id').first()
-        if last_exam and last_exam.exam_code:
-            last_code = int(last_exam.exam_code.split('-')[1])
-            next_code = last_code + 1
-        else:
-            next_code = 1
-        return f'E-{next_code:03d}'
-    
-    def save(self, *args, **kwargs):
-        if not self.exam_code:
-            self.exam_code = self.generate_exam_code()
-
-        # set default duration to 2 hours if not specified
-        if not self.duration:
-            self.duration = timedelta(hours=2)
-
-        super().save(*args, **kwargs)
-
-    # start exam
-    def start_exam(self):
-        # called when an exam starts
-        self.start_time = timezone.now()
-        self.save()
-
-    # end exam
-    def end_exam(self):
-        # called when an exam ends
-        if self.start_time:
-            self.end_time = timezone.now()
-            self.time_taken = self.end_time - self.start_time
-            self.save()
-        else:
-            raise ValueError('Exam must be started before it can be ended!')
-        
-    # time remaining
-    def time_remaining(self):
-        if self.start_time and not self.end_time:
-            elapsed = timezone.now() - self.start_time
-            return self.duration - elapsed
-        return timedelta(0)
-    
-    def is_active(self):
-        # check if exam is currently active
-        now = timezone.now()
-        return (self.start_time and not self.end_time and now >= self.start_time and now <= (self.start_time + self.duration))
-
-
-    def __str__(self):
-        return f'{self.exam_name} (Code: {self.exam_code}) for {self.class_name}{self.stream_name}'
-
-# cat model
-class Cat(models.Model):
-    cat_teacher = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='cats')
+# CAT MODEL
+class Cats(models.Model):
     cat_name = models.CharField(max_length=200)
-    class_name = models.ForeignKey(Class, on_delete=models.CASCADE, related_name='cat')
-    stream_name = models.ForeignKey(Stream, on_delete=models.CASCADE, related_name='cats')
+    cat_teacher = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='cats')
     content = models.TextField()
-    cat_date = models.DateField()
-    start_time = models.DateTimeField(null=True, blank=True)
-    end_time = models.DateTimeField(null=True, blank=True)
-    cat_code = models.CharField(max_length=100, unique=True)
+    cat_class = models.ForeignKey(Class, on_delete=models.CASCADE, related_name='cats')
+    cat_stream = models.ForeignKey(Stream, on_delete=models.CASCADE, related_name='cats')
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name='cats')  
+    duration = models.DurationField(default=timedelta(minutes=40))
+    date_done = models.DateField()
+    start_time = models.TimeField()
+    cat_code = models.CharField(max_length=20, unique=True)
+    end_time = models.TimeField()
 
-    # class method to generate the cat code
+    is_english = models.BooleanField(default=False)
+    is_maths = models.BooleanField(default=False)
+    is_kiswahili = models.BooleanField(default=False)
+
+    is_chemistry = models.BooleanField(default=False)
+    is_physics = models.BooleanField(default=False)
+    is_biology = models.BooleanField(default=False)
+
+    is_geography = models.BooleanField(default=False)
+    is_cre = models.BooleanField(default=False)
+    is_history = models.BooleanField(default=False)
+
+    is_computer_studies = models.BooleanField(default=False)
+    is_business_studies = models.BooleanField(default=False)
+    is_agriculture = models.BooleanField(default=False)
+
+    # function to calculate the expected end time
+    def calculate_end_time(self):
+        full_start = datetime.combine(datetime.today(), self.start_time)
+        expected_finish_time = full_start + self.duration
+        return expected_finish_time.time()
+        
+
+    # class method to create a cat code
     @classmethod
     def generate_cat_code(cls):
         last_cat = cls.objects.order_by('-id').first()
 
+        # if last cat, then get the asssociated code
         if last_cat and last_cat.cat_code:
             last_code = int(last_cat.cat_code.split('-')[1])
             next_code = last_code + 1
         else:
             next_code = 1
+        return f'{next_code:03d}'
 
-        return f'C-{next_code:03d}'
-    
     def __str__(self):
-        return f'{self.cat_name} ({self.cat_code})'
+        return f'{self.cat_name} done on {self.date_done} starting at {self.start_time}'
     
     def save(self, *args, **kwargs):
         if not self.cat_code:
             self.cat_code = self.generate_cat_code()
+
+        if not self.end_time:
+            self.end_time = self.calculate_end_time()
+
         super().save(*args, **kwargs)
 
-# Examination model
-class Examination(models.Model):
-    exam_name = models.CharField(max_length=100)
-    exam_teacher = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='examinations')
-    class_name = models.ForeignKey(Class, on_delete=models.CASCADE, related_name='examinations')
-    stream_name = models.ForeignKey(Stream, on_delete=models.CASCADE, related_name='examinations')
-    exam_date = models.DateField()
-    start_time = models.TimeField()
-    end_time = models.TimeField()
-    content = models.TextField()
-    exam_code = models.CharField(max_length=10, unique=True)
 
-    # generate a unique examination code
-    @classmethod
-    def generate_exam_code(cls):
-        last_exam = cls.objects.order_by('-id').first()
-        if last_exam and last_exam.exam_code:
-            last_code = int(last_exam.exam_code.split('-')[1])
-            next_code = last_code + 1
-        else:
-            next_code = 1
-        return f'E-{next_code:03d}'
-    
-    def save(self, *args, **kwargs):
-        if not self.exam_code:
-            self.exam_code = self.generate_exam_code()
-        super().save(*args, **kwargs)
-
-    def __str__(self):
-        return f'{self.exam_name} ({self.exam_code})'
-
-# cat result model
-class CatResults(models.Model):
-    marks = models.IntegerField()
-    grade = models.CharField(max_length=10)
-
-    cat_name = models.ForeignKey(Cat, on_delete=models.CASCADE, related_name='cat_results')
-    cat_teacher = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='results')
-    cat_student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='cat_results')
-    cat_subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name='cat_results')
-
-    # function to calculate the grade of a subject
-    def calculate_subject_grade(self):
-        marks = self.marks
-
-        # calculate marks out of 30 and convert it to a percentage
-        grading = ((marks/30) * 100)
-
-        if grading >= 80:
-            return 'A'
-        
-        elif grading >= 70:
-            return 'B'
-        
-        elif grading >= 60:
-            return 'B-'
-        
-        elif grading >= 50:
-            return 'C+'
-        
-        elif grading >=40:
-            return 'C'
-        
-        elif grading >= 35:
-            return 'D'
-        
-        elif grading >= 30:
-            return 'D-'
-        
-        elif grading >=20:
-            return 'E'
-        
-        else:
-            return 'FAIL'
-        
-    def save(self, *args, **kwargs):
-        self.grade = self.calculate_subject_grade()
-        super().save(*args, **kwargs)
-
-    def __str__(self):
-        return f'{self.cat_student} - {self.cat_name} - {self.cat_subject}'
-
-# Cat Grading 
+# CATGRADING MODEL
 class CatGrading(models.Model):
-    cat_name = models.ForeignKey(Cat, on_delete=models.CASCADE, related_name='cat_grading')
-    cat_teacher = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='grading')
-    cat_student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='cat_grading')
-    cat_subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name='cat_grading')
-
-    cat_marks = models.IntegerField()
-    cat_grade = models.CharField(max_length=10, blank=True, null=True)
+    cat_name = models.ForeignKey(Cats, on_delete=models.CASCADE, related_name='cat_grading')
+    supervisor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='cat_grading')
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='cat_grading')
+    marks = models.IntegerField()
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name='cat_grading')
+    grade = models.CharField(max_length=10)
+    date_graded = models.DateTimeField(auto_now_add=True)
 
     is_english = models.BooleanField(default=False)
     is_maths = models.BooleanField(default=False)
@@ -428,96 +309,41 @@ class CatGrading(models.Model):
     is_physics = models.BooleanField(default=False)
     is_biology = models.BooleanField(default=False)
 
-    is_history = models.BooleanField(default=False)
     is_geography = models.BooleanField(default=False)
     is_cre = models.BooleanField(default=False)
+    is_history = models.BooleanField(default=False)
 
+    is_computer_studies = models.BooleanField(default=False)
     is_business_studies = models.BooleanField(default=False)
     is_agriculture = models.BooleanField(default=False)
-    is_computer_studies = models.BooleanField(default=False)
+
+    # function to calculate the final grade
+    def cat_grade(self):
+        marks = self.marks
+        total_marks = ((marks / 40) * 30)
+
+        if total_marks >= 25:
+            return 'A'
+        
+        elif total_marks >= 20:
+            return 'B'
+        
+        elif total_marks >= 15:
+            return 'c'
+        
+        elif total_marks >= 10:
+            return 'D'
+        
+        elif total_marks >= 5:
+            return 'E'
+        
+        else:
+            return 'FAIL'
 
     def __str__(self):
-        return f'{self.cat_name} - {self.cat_student.student_code} {self.cat_marks}'
+        return f'{self.cat_name.cat_name} for {self.student.user.username}'
     
-    # calculate the grade of a given subject
-    def calculate_final_grade(self):
-        marks = self.cat_marks
-        percentage = ((marks/30) * 100)
-
-        if percentage >= 70:
-            return 'A'
-        
-        elif percentage >= 60:
-            return 'B'
-        
-        elif percentage >= 50:
-            return 'C'
-        
-        elif percentage >= 40:
-            return 'D'
-        
-        elif percentage >= 30:
-            return 'E'
-        
-        else:
-            return 'FAIL'
-        
     def save(self, *args, **kwargs):
-        self.cat_grade = self.calculate_final_grade()
+        if not self.grade:
+            self.grade = self.cat_grade()
         super().save(*args, **kwargs)
-
-# class to calculate the grade of an exam, then save it as true in dbase
-class ExamGrading(models.Model):
-    exam_name = models.ForeignKey(Exams, on_delete=models.CASCADE, related_name='exam_grading')
-    exam_teacher = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='exam_grading')
-    exam_student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='exam_grade')
-    exam_subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name='exam_grading')
-
-    exam_marks = models.IntegerField()
-    exam_grade = models.CharField(max_length=10)
-
-    is_english = models.BooleanField(default=False)
-    is_maths = models.BooleanField(default=False)
-    is_kiswahili = models.BooleanField(default=False)
-
-    is_chemistry = models.BooleanField(default=False)
-    is_physics = models.BooleanField(default=False)
-    is_biology = models.BooleanField(default=False)
-
-    is_history = models.BooleanField(default=False)
-    is_geography = models.BooleanField(default=False)
-    is_cre = models.BooleanField(default=False)
-
-    is_business_studies = models.BooleanField(default=False)
-    is_agriculture = models.BooleanField(default=False)
-    is_computer_studies = models.BooleanField(default=False)
-
-    # function to calculate the grade out of 70
-    def calculate_exam_grade(self):
-        exam_marks = self.exam_marks
-        percentage = ((exam_marks / 100) * 70)
-
-        if percentage >= 70:
-            return 'A'
-        
-        elif percentage >= 60:
-            return 'B'
-        
-        elif percentage >= 50:
-            return 'C'
-        
-        elif percentage >= 40:
-            return 'D'
-        
-        elif percentage >= 30:
-            return 'E'
-        
-        else:
-            return 'FAIL'
-        
-    def save(self, *args, **kwargs):
-        self.exam_grade = self.calculate_exam_grade()
-        super().save(*args, **kwargs)
-
-    def __str__(self):
-        return f'{self.exam_name} -{self.exam_subject} ({self.exam_grade})'

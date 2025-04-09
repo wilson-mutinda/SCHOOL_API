@@ -7,8 +7,7 @@ from django.utils import timezone
 from .models import (
     CustomUser, Role, Parent, Teacher, 
     Student, Subject, Class, Stream, 
-    Announcement, Exams, Cat, Examination, 
-    CatResults, CatGrading, ExamGrading
+    Announcement, CatGrading, Cats
 )
 
 # Role Serializer
@@ -316,309 +315,198 @@ class AnnouncementSerializer(serializers.ModelSerializer):
 
         return super().create(validated_data)
 
-# exam serializer  
-class ExamSerializer(serializers.ModelSerializer):
-    # Display only
-    exam_teacher_display = serializers.CharField(source='exam_teacher.teachers.teacher_code', read_only=True)
-
-    class_name = ClassSerializer(read_only=True)
-    stream_name = StreamSerializer(read_only=True)
-    class_name_id = serializers.PrimaryKeyRelatedField(queryset=Class.objects.all(), write_only=True, source='class_name')
-    stream_name_id = serializers.PrimaryKeyRelatedField(queryset=Stream.objects.all(), write_only=True, source='stream_name')
-
-    # Writable teacher field
-    exam_teacher = serializers.PrimaryKeyRelatedField(queryset=CustomUser.objects.all(), write_only=True)
-
-    duration = serializers.DurationField(default=timedelta(hours=2))
-    time_taken = serializers.DurationField(read_only=True)
-    time_remaining = serializers.SerializerMethodField(read_only=True)
-    is_active = serializers.SerializerMethodField(read_only=True)
-    teacher_code = serializers.SerializerMethodField()
-    date_created = serializers.DateTimeField(read_only=True, format="%Y-%m-%d %H:%M")
-    exam_code = serializers.CharField(read_only=True)
-
-    class Meta:
-        model = Exams
-        fields = [
-            'id', 'exam_teacher', 'exam_teacher_display', 'teacher_code', 'exam_name',
-            'class_name', 'stream_name', 'class_name_id', 'stream_name_id',
-            'content', 'exam_date', 'duration', 'time_taken', 'time_remaining',
-            'is_active', 'start_time', 'end_time', 'date_created', 'exam_code'
-        ]
-
-    def get_teacher_code(self, obj):
-        if hasattr(obj.exam_teacher, 'teachers'):
-            return obj.exam_teacher.teachers.teacher_code
-        return None
-
-    def get_time_remaining(self, obj):
-        return obj.time_remaining().total_seconds() if obj.time_remaining() else None
-
-    def get_is_active(self, obj):
-        return obj.is_active()
-
 # Cat Serializer
 class CatSerializer(serializers.ModelSerializer):
 
-    cat_teacher = serializers.CharField(source='cat_teacher.teachers.teacher_code', read_only=True)
     cat_name = serializers.CharField()
-
-    class_name = ClassSerializer(read_only=True)
-    stream_name = StreamSerializer(read_only=True)
-
-    class_name_id = serializers.PrimaryKeyRelatedField(queryset=Class.objects.all(), write_only=True, source='class_name')
-    stream_name_id = serializers.PrimaryKeyRelatedField(queryset=Stream.objects.all(), write_only=True, source='stream_name')
-
+    cat_teacher = serializers.CharField(source='cat_teacher.teachers.teacher_code', read_only=True)
     content = serializers.CharField()
-    cat_date = serializers.DateField()
-    start_time = serializers.DateTimeField()
-    end_time = serializers.DateTimeField()
+    cat_class = ClassSerializer()
+    cat_stream = StreamSerializer()
+    subject = SubjectSerializer()
+    duration = serializers.DurationField(default=timedelta(minutes=40))
+    date_done = serializers.DateField(format="%Y:%M:%d")
+    start_time = serializers.TimeField(format="%H:%M:%s")
     cat_code = serializers.CharField(read_only=True)
+    end_time = serializers.TimeField(read_only=True)
 
     class Meta:
-        model = Cat
-        fields = ['id', 'cat_teacher', 'cat_name', 'class_name', 'stream_name', 'class_name_id', 'stream_name_id', 'content', 'cat_date', 'start_time', 'end_time', 'cat_code']
+        model = Cats
+        fields = ['id', 'cat_name', 'cat_teacher', 'content', 'cat_class', 'cat_stream', 'subject', 'duration', 'date_done', 'start_time', 'cat_code', 'end_time']
 
-    # validate start time
-    def validate_start_time(self, start_time):
-        now = timezone.now()
-        if start_time < now:
-            raise serializers.ValidationError('Start time should be in future!')
-        return start_time
-
-    # validate end time
-    def validate_end_time(self, end_time):
-        now = timezone.now()
-        if end_time < now:
-            raise serializers.ValidationError('End time should be in future!')
-        return end_time
-    
-    # validate cat dates
-    def validate_cat_date(self, cat_date):
-        today = date.today()
-        if cat_date < today:
-            raise serializers.ValidationError({'cat_date': 'Cat cannot be in past!'})
-
-    # validate start time and end time
-    def validate(self, data):
-        start_time = data.get('start_time')
-        end_time = data.get('end_time')
-
-        if start_time and end_time and start_time >= end_time:
-            raise serializers.ValidationError({'start_time': 'Invalid Time Configuration!'})
+    def validate_duration(self, data):
+        if data != timedelta(minutes=40):
+            raise serializers.ValidationError('Duration is only 40 minutes!')
         return data
     
     def create(self, validated_data):
+
         validated_data['cat_teacher'] = self.context['request'].user
-        return super().create(validated_data)
-    
-# Examination serializer
-class ExaminationSerializer(serializers.ModelSerializer):
 
-    exam_name = serializers.CharField()
-    exam_teacher = serializers.CharField(source='exam_teacher.teachers.teacher_code', read_only=True)
+        class_info = validated_data.pop('cat_class')
+        class_name = class_info.get('name')
 
-    class_name = ClassSerializer(read_only=True)
-    stream_name = StreamSerializer(read_only=True)
-    
-    class_name_id = serializers.PrimaryKeyRelatedField(queryset=Class.objects.all(), write_only=True, source='class_name')
-    stream_name_id = serializers.PrimaryKeyRelatedField(queryset=Stream.objects.all(), write_only=True, source='stream_name')
-
-    exam_date = serializers.DateField()
-    start_time = serializers.TimeField()
-    end_time = serializers.TimeField()
-    content = serializers.CharField()
-    exam_code = serializers.CharField(read_only=True)
-
-    class Meta:
-        model = Examination
-        fields = ['id', 'exam_name', 'exam_teacher', 'class_name', 'stream_name', 'class_name_id', 'stream_name_id', 'exam_date', 'start_time', 'end_time', 'content', 'exam_code']
-
-    # validate start time
-    def validate_start_time(self, start_time):
-        return start_time
-    
-    # validate end time
-    def validate_end_time(self, end_time):
-        return end_time
+        try:
+            c_name = Class.objects.get(name=class_name)
+        except Class.DoesNotExist:
+            raise serializers.ValidationError({'cat_class': 'Class not available'})
         
-    def validate(self, data):
-        exam_date = data['exam_date']
-        start_time = data['start_time']
-        end_time = data['end_time']
+        validated_data['cat_class'] = c_name
+        
+        stream_info = validated_data.pop('cat_stream')
+        stream_name_raw = stream_info.get('name')
 
-        start = datetime.combine(exam_date, start_time)
-        end = datetime.combine(exam_date, end_time)
+        stream_class_info = stream_info.get('class_name')
+        stream_class_name = stream_class_info.get('name')
 
-        # Make start and end timezone-aware
-        if timezone.is_naive(start):
-            start = timezone.make_aware(start)
-        if timezone.is_naive(end):
-            end = timezone.make_aware(end)
+        composed_stream_name = f'{stream_class_name}{stream_name_raw}'
 
-        now = timezone.now()
+        try:
+            s_name = Stream.objects.get(stream_name__iexact=composed_stream_name)
+        except Stream.DoesNotExist:
+            raise serializers.ValidationError({'cat_stream': 'Stream not available'})
+        
+        validated_data['cat_stream'] = s_name
 
-        if start < now:
-            raise serializers.ValidationError({'start_time': 'Invalid Date Configuration. Please retry!'})
+        
+        subject_details = validated_data.pop('subject')
+        subject_name = subject_details.get('name')
 
-        if end < now:
-            raise serializers.ValidationError({'end_time': 'Invalid Date Configuration!'})
+        try:
+            sub_name = Subject.objects.get(name=subject_name)
+            if sub_name.name.lower() == 'english':
+                validated_data['is_english'] = True
 
-        if start >= end:
-            raise serializers.ValidationError({'start_time': 'Start time must be before the end time!'})
+            if sub_name.name.lower() == 'kiswahili':
+                validated_data['is_kiswahili'] = True
 
-        if (end - start) > timedelta(hours=2):
-            raise serializers.ValidationError('Exam can only last a maximum of 2 hours!')
+            if sub_name.name.lower() == 'maths':
+                validated_data['is_maths'] = True
 
-        return data
-    
-    def create(self, validated_data):
-        validated_data['exam_teacher'] = self.context['request'].user
+            if sub_name.name.lower() == 'chemistry':
+                validated_data['is_chemistry'] = True
+
+            if sub_name.name.lower() == 'physics':
+                validated_data['is_physics'] = True
+
+            if sub_name.name.lower() == 'biology':
+                validated_data['is_biology'] = True
+
+            if sub_name.name.lower() == 'history':
+                validated_data['is_history'] = True
+
+            if sub_name.name.lower() == 'cre':
+                validated_data['is_cre'] = True
+
+            if sub_name.name.lower() == 'geography':
+                validated_data['is_geography'] = True
+
+            if sub_name.name.lower() == 'business_studies':
+                validated_data['is_business_studies'] = True
+
+            if sub_name.name.lower() == 'computer_studies':
+                validated_data['is_computer_studies'] = True
+
+            if sub_name.name.lower() == 'agriculture':
+                validated_data['is_agriculture'] = True
+
+        except Subject.DoesNotExist:
+            raise serializers.ValidationError({'subject': 'Invalid Subject'})
+        
+        validated_data['subject'] = sub_name
+
         return super().create(validated_data)
     
+# Cat Grading Serializer
+class CatGradingSerializer(serializers.ModelSerializer):
 
-# Cat Result serializer
-class CatResultSerializer(serializers.ModelSerializer):
+    cat_name = serializers.CharField()
+    student = serializers.CharField()
+    subject = serializers.CharField()
 
+    supervisor = serializers.CharField(source='supervisor.teachers.teacher_code', read_only=True)
     marks = serializers.IntegerField()
+    date_graded = serializers.DateTimeField(read_only=True)
     grade = serializers.CharField(read_only=True)
 
-    cat_name = CatSerializer(read_only=True)
-    cat_name_id = serializers.PrimaryKeyRelatedField(queryset=Cat.objects.all(), write_only=True, source='cat_name')
-
-    cat_teacher = serializers.CharField(source='cat_teacher.teachers.teacher_code', read_only=True)
-
-    cat_student = serializers.CharField(source='cat_student.students.student_code', read_only=True)
-    cat_student_code = serializers.CharField(write_only=True)
-
-    cat_subject = SubjectSerializer(read_only=True)
-    cat_subject_id = serializers.PrimaryKeyRelatedField(queryset=Subject.objects.all(), source='cat_subject', write_only=True)
-
     class Meta:
-        model = CatResults
-        fields = ['id', 'marks', 'grade', 'cat_name', 'cat_name_id', 'cat_teacher', 'cat_student', 'cat_student_code', 'cat_subject', 'cat_subject_id']
+        model = CatGrading
+        fields = ['id', 'cat_name', 'supervisor', 'student', 'marks', 'subject', 'grade', 'date_graded']
 
-    # validate marks to below at most 30
+    # validate marks
     def validate_marks(self, marks):
-        if marks <= 0 or marks >30:
-            raise serializers.ValidationError({'marks': 'Invalid Marks!'})
-        return marks
-    
-    def create(self, validated_data):
-        # extract and remove student_code from validated_data
-        student_code = validated_data.pop('cat_student_code')
+        if marks <= 0 :
+            raise serializers.ValidationError({'marks': 'Cat Cannot be a zero! Put a 1 instead!'})
+        
+        if marks > 40:
+            raise serializers.ValidationError({'marks': 'Cat cannot be more than 40 marks'})
 
+    def create(self, validated_data):
+
+        # assign supervisor automatically
+        validated_data['supervisor'] = self.context['request'].user
+
+        # STUDENT CODE
+        student_code = validated_data.pop('student')
         try:
             student = Student.objects.get(student_code=student_code)
         except Student.DoesNotExist:
-            raise serializers.ValidationError({'cat_student_code': 'Student with this code does not exist!'})
-        
-        # assign actual objects to required fields
-        validated_data['cat_student'] = student
-        validated_data['cat_teacher'] = self.context['request'].user
-        return super().create(validated_data)
+            raise serializers.ValidationError({'student': 'Student Code does not exist!'})
+        validated_data['student'] = student
 
-# Cat Grading Serailizer
-class CatGradingSerializer(serializers.Serializer):
-
-    cat_name_id = serializers.PrimaryKeyRelatedField(queryset=Cat.objects.all())
-    cat_student_code = serializers.CharField()
-    subjects = serializers.ListField(
-        child = serializers.DictField(
-            child=serializers.IntegerField(),
-        ),
-        help_text = 'List of subjects with subject_id and cat_marks'
-    )
-
-    def validate(self, data):
-        if not data.get('subjects'):
-            raise serializers.ValidationError('At least one subject is required!')
-        return data
-    
-    def create(self, validated_data):
-        cat_name = validated_data['cat_name_id']
-        student_code = validated_data['cat_student_code']
-        subject_data_list = validated_data['subjects']
-        teacher = self.context['request'].user
-
+        # CAT
+        cat_name = validated_data.pop('cat_name')
         try:
-            student = Student.objects.get(student_code=student_code)
-        except Student.DoesNotExist:
-            raise serializers.ValidationError({'cat_student_code': 'Invalid Student Code'})
-        
-        graded_subjects = []
+            cat = Cats.objects.get(cat_name=cat_name)
+        except Cats.DoesNotExist:
+            raise serializers.ValidationError({'cat_name': 'CAT Not Found!'})
+        validated_data['cat_name'] = cat
 
-        for entry in subject_data_list:
-            subject_id = entry.get('subject_id')
-            marks = entry.get('cat_marks')
+        # Subject
+        subject_name = validated_data.pop('subject')
+        try:
+            subject = Subject.objects.get(name=subject_name)
 
-            try:
-                subject = Subject.objects.get(id=subject_id)
-            except Subject.DoesNotExist:
-                raise serializers.ValidationError({'subject_id': f'Subject ID {subject_id} not found'})
+            if subject.name.lower() == 'english':
+                validated_data['is_english'] = True
             
-            grading = CatGrading.objects.create(
-                cat_name=cat_name,
-                cat_teacher = teacher,
-                cat_student = student,
-                cat_subject = subject,
-                cat_marks = marks
-            )
-            graded_subjects.append(grading)
-        return graded_subjects
-    
-# serializer to handle examGrading
-class ExamGradingSerializer(serializers.ModelSerializer):
+            if subject.name.lower() == 'maths':
+                validated_data['is_maths'] = True
 
-    exam_name = ExamSerializer(read_only=True)
-    exam_name_id = serializers.PrimaryKeyRelatedField(queryset=Exams.objects.all(), source='exam_name', write_only=True)
+            if subject.name.lower() == 'kiswahili':
+                validated_data['is_kiswahili'] = True
 
-    exam_teacher = serializers.CharField(source='exam_teacher.teachers.teacher_code', read_only=True)
+            if subject.name.lower() == 'chemistry':
+                validated_data['is_chemistry'] = True
 
-    exam_student = StudentSerializer(read_only=True)
-    exam_student_code = serializers.CharField(write_only=True)
+            if subject.name.lower() == 'physics':
+                validated_data['is_physics'] = True
 
-    exam_subject = ExamSerializer(read_only=True)
-    exam_subject_id = serializers.PrimaryKeyRelatedField(queryset=Subject.objects.all(), source='exam_subject', write_only=True)
+            if subject.name.lower() == 'biology':
+                validated_data['is_biology'] = True
 
-    exam_marks = serializers.IntegerField()
-    exam_grade = serializers.CharField(read_only=True)
+            if subject.name.lower() == 'geography':
+                validated_data['is_geography'] = True
 
-    class Meta:
-        model = ExamGrading
-        fields = [
-            'id', 'exam_name', 'exam_name_id', 'exam_teacher', 'exam_student', 
-            'exam_student_code', 'exam_subject', 'exam_subject_id', 'exam_marks', 'exam_grade', 
-            'is_english',
-            'is_maths', 'is_kiswahili', 'is_chemistry', 'is_physics',
-            'is_biology', 'is_history', 'is_geography', 'is_cre',
-            'is_business_studies', 'is_agriculture', 'is_computer_studies'
-        ]
+            if subject.name.lower() == 'history':
+                validated_data['is_history'] = True
 
-    # ensure marks are ented and must be more than 0 and less or equal to 100
-    def validate_exam_marks(self, marks):
-        if not marks:
-            raise serializers.ValidationError({'exam_marks': 'Exam Marks Must be provided!'})
+            if subject.name.lower() == 'cre':
+                validated_data['is_cre'] = True
+
+            if subject.name.lower() == 'computer_studies':
+                validated_data['is_computer_studies'] = True
+
+            if subject.name.lower() == 'business_studies':
+                validated_data['is_business_studies'] = True
+
+            if subject.name.lower() == 'agriculture':
+                validated_data['is_agriculture'] = True
+
+        except Subject.DoesNotExist:
+            raise serializers.ValidationError({'subject': 'Subject does not exist!'})
         
-        if marks <= 0:
-            raise serializers.ValidationError({'exam_marks': 'Exam Marks should be more than 0!'})
-        
-        if marks > 100:
-            raise serializers.ValidationError({'exam_marks': 'Exam Marks cannot be more than 100!'})
-        
-        return marks
-    
-    def create(self, validated_data):
+        validated_data['subject'] = subject
 
-        # extract student code and ensure its valid
-        student_code = validated_data.pop('exam_student_code')
-
-        try:
-            student = Student.objects.get(student_code = student_code)
-        except Student.DoesNotExist:
-            raise serializers.ValidationError({'cat_student_code': 'Student with the code does not exist!'})
-        
-        validated_data['exam_student'] = student
-        validated_data['exam_teacher'] = self.context['request'].user
         return super().create(validated_data)
 
