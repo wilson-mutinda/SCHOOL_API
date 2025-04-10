@@ -276,7 +276,7 @@ class Cats(models.Model):
             next_code = last_code + 1
         else:
             next_code = 1
-        return f'{next_code:03d}'
+        return f'C-{next_code:03d}'
 
     def __str__(self):
         return f'{self.cat_name} done on {self.date_done} starting at {self.start_time}'
@@ -346,4 +346,122 @@ class CatGrading(models.Model):
     def save(self, *args, **kwargs):
         if not self.grade:
             self.grade = self.cat_grade()
+        super().save(*args, **kwargs)
+
+# Exam model
+class Exam(models.Model):
+    exam_name = models.CharField(max_length=100)
+    exam_teacher = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='exams')
+    content = models.TextField()
+    exam_class = models.ForeignKey(Class, on_delete=models.CASCADE, related_name='exams')
+    exam_stream = models.ForeignKey(Stream, on_delete=models.CASCADE, related_name='exams')
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name='exams')
+    duration = models.DurationField(default=timedelta(hours=2))
+    date_done = models.DateField()
+    start_time = models.TimeField()
+    end_time = models.TimeField()
+    exam_code = models.CharField(max_length=20, unique=True)
+
+    is_english = models.BooleanField(default=False)
+    is_maths = models.BooleanField(default=False)
+    is_kiswahili = models.BooleanField(default=False)
+
+    is_chemistry = models.BooleanField(default=False)
+    is_physics = models.BooleanField(default=False)
+    is_biology = models.BooleanField(default=False)
+
+    is_geography = models.BooleanField(default=False)
+    is_cre = models.BooleanField(default=False)
+    is_history = models.BooleanField(default=False)
+
+    is_computer_studies = models.BooleanField(default=False)
+    is_business_studies = models.BooleanField(default=False)
+    is_agriculture = models.BooleanField(default=False)
+
+    # function to calculate the end tome for an exam
+    def calculate_end_time(self):
+        full_start = datetime.combine(datetime.today(), self.start_time)
+        expected_end_time = full_start + self.duration
+        return expected_end_time.time()
+
+    # class method to generate the exam code
+    @classmethod
+    def generate_exam_code(cls):
+        last_exam = cls.objects.order_by('-id').first()
+
+        # if last exam, get the exam code
+        if last_exam and last_exam.exam_code:
+            last_code = int(last_exam.exam_code.split('-')[1])
+            next_code = last_code + 1
+        else:
+            next_code = 1
+        return f'E-{next_code:03d}'
+
+    def __str__(self):
+        return f'{self.exam_name} - to be done on {self.date_done} at {self.start_time}'
+    
+    def save(self, *args, **kwargs):
+        if not self.exam_code:
+            self.exam_code = self.generate_exam_code()
+
+        if not self.end_time:
+            self.end_time = self.calculate_end_time()
+
+        super().save(*args, **kwargs)
+
+# Exam Grading model
+class ExamGrading(models.Model):
+    exam_name = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name='exam_grading')
+    supervisor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='exam_grading')
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='exam_grading')
+    marks = models.IntegerField()
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name='exam_grading')
+    grade = models.CharField(max_length=10)
+    date_graded = models.DateTimeField(auto_now_add=True)
+
+    is_english = models.BooleanField(default=False)
+    is_maths = models.BooleanField(default=False)
+    is_kiswahili = models.BooleanField(default=False)
+
+    is_chemistry = models.BooleanField(default=False)
+    is_physics = models.BooleanField(default=False)
+    is_biology = models.BooleanField(default=False)
+
+    is_geography = models.BooleanField(default=False)
+    is_cre = models.BooleanField(default=False)
+    is_history = models.BooleanField(default=False)
+
+    is_computer_studies = models.BooleanField(default=False)
+    is_business_studies = models.BooleanField(default=False)
+    is_agriculture = models.BooleanField(default=False)
+
+    # Function to calculate the grade
+    def calculate_exam_grade(self):
+        exam_marks = self.marks
+        total_marks = ((exam_marks / 60) * 70)
+
+        if total_marks >= 50:
+            return 'A'
+        
+        elif total_marks >= 40:
+            return 'B'
+        
+        elif total_marks >= 30:
+            return 'C'
+        
+        elif total_marks >= 20:
+            return 'D'
+        
+        elif total_marks >= 10:
+            return 'E'
+        
+        else:
+            return 'FAIL'
+
+    def __str__(self):
+        return f'{self.exam_name} with {self.marks} - {self.grade}'
+    
+    def save(self, *args, **kwargs):
+        if not self.grade:
+            self.grade = self.calculate_exam_grade()
         super().save(*args, **kwargs)

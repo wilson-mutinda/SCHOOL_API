@@ -2,11 +2,13 @@ from django.shortcuts import render, get_object_or_404
 
 from .models import (
     CustomUser, Role, Parent, Teacher, Student, 
-    Subject, Class, Stream, Announcement, CatGrading, Cats
+    Subject, Class, Stream, Announcement, CatGrading, 
+    Cats, Exam, ExamGrading
 )
 from .serializers import (
     CustomUserSerializer, RoleSerializer, TeacherSerializer, ParentSerializer, StudentSerializer,
-    SubjectSerializer, ClassSerializer, StreamSerializer, AnnouncementSerializer, CatGradingSerializer, CatSerializer
+    SubjectSerializer, ClassSerializer, StreamSerializer, AnnouncementSerializer, CatGradingSerializer, 
+    CatSerializer, ExamSerializer, ExamGradingSerializer
 )
 
 from rest_framework import response, status, permissions
@@ -226,4 +228,24 @@ def create_cat_grade_view(request):
     if serializer.is_valid():
         serializer.save()
         return response.Response({'message': 'Cat Graded successfully!'}, status=status.HTTP_200_OK)
+    return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# permit a logged in teacher to create an exam
+@api_view(['POST'])
+@permission_classes([IsTeacher])
+def create_exam_view(request):
+    serializer = ExamSerializer(data=request.data, context={'request': request})
+    if serializer.is_valid():
+        serializer.save()
+        return response.Response({'message': 'Exam Created'}, status=status.HTTP_201_CREATED)
+    return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# permit a teacher to grade a student exam
+@api_view(['POST'])
+@permission_classes([IsTeacher])
+def create_exam_grade_view(request):
+    serializer = ExamGradingSerializer(data=request.data, context={'request': request})
+    if serializer.is_valid():
+        serializer.save()
+        return response.Response({'message': 'Exam Graded'}, status=status.HTTP_200_OK)
     return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

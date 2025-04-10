@@ -17,4 +17,6 @@ urlpatterns = [
     path('create_announcement/', views.create_announcement_view, name='announcement'),
     path('create_cat/', views.create_cat_view, name='cat'),
     path('create_cat_grade/', views.create_cat_grade_view, name='cat_grade'),
+    path('create_exam/', views.create_exam_view, name='exam'),
+    path('create_exam_grade/', views.create_exam_grade_view, name='exam_grade'),
 ]
