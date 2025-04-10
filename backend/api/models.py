@@ -465,3 +465,17 @@ class ExamGrading(models.Model):
         if not self.grade:
             self.grade = self.calculate_exam_grade()
         super().save(*args, **kwargs)
+
+# Grade both cat and exam and roduce a common grade
+class CatAndExam(models.Model):
+    class_name = models.ForeignKey(Class, on_delete=models.CASCADE, related_name='cat_and_exam')
+    stream_name = models.ForeignKey(Stream, on_delete=models.CASCADE, related_name='cat_and_exam')
+    class_teacher = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='cat_and_exam')
+    class_student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='cat_and_exam')
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name='cat_and_exam')
+    student_cat = models.IntegerField()
+    student_exam = models.IntegerField()
+
+
+    def __str__(self):
+        return f'{self.class_student.student_code}: CAT: ({self.student_cat}) EXAM: ({self.student_exam}) '

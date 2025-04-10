@@ -3,12 +3,12 @@ from django.shortcuts import render, get_object_or_404
 from .models import (
     CustomUser, Role, Parent, Teacher, Student, 
     Subject, Class, Stream, Announcement, CatGrading, 
-    Cats, Exam, ExamGrading
+    Cats, Exam, ExamGrading, CatAndExam
 )
 from .serializers import (
     CustomUserSerializer, RoleSerializer, TeacherSerializer, ParentSerializer, StudentSerializer,
     SubjectSerializer, ClassSerializer, StreamSerializer, AnnouncementSerializer, CatGradingSerializer, 
-    CatSerializer, ExamSerializer, ExamGradingSerializer
+    CatSerializer, ExamSerializer, ExamGradingSerializer, CatAndExamSerailizer
 )
 
 from rest_framework import response, status, permissions
@@ -248,4 +248,14 @@ def create_exam_grade_view(request):
     if serializer.is_valid():
         serializer.save()
         return response.Response({'message': 'Exam Graded'}, status=status.HTTP_200_OK)
+    return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# function view to create a cat and exam by an authorized teacher
+@api_view(['POST'])
+@permission_classes([IsTeacher])
+def create_exam_and_cat_view(request):
+    serializer = CatAndExamSerailizer(data=request.data, context={'request': request})
+    if serializer.is_valid():
+        serializer.save()
+        return response.Response({'message': 'Successful'}, status=status.HTTP_200_OK)
     return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

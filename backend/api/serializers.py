@@ -7,7 +7,8 @@ from django.utils import timezone
 from .models import (
     CustomUser, Role, Parent, Teacher, 
     Student, Subject, Class, Stream, 
-    Announcement, CatGrading, Cats, Exam, ExamGrading
+    Announcement, CatGrading, Cats, Exam, 
+    ExamGrading, CatAndExam
 )
 
 # Role Serializer
@@ -757,4 +758,109 @@ class ExamGradingSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({'subject': 'Subject Does Not Exist!'})
         validated_data['subject'] = subject
         return super().create(validated_data)
+    
+# cat and exam serializer
+class CatAndExamSerailizer(serializers.ModelSerializer):
+
+    class_name = serializers.CharField()
+    stream_name = serializers.CharField()
+    class_teacher = serializers.CharField(source='class_teacher.teachers.teacher_code', read_only=True)
+    class_student = serializers.CharField()
+    subject = serializers.CharField()
+    student_cat = serializers.IntegerField(read_only=True)
+    student_exam = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = CatAndExam
+        fields = ['id', 'class_name', 'stream_name', 'class_teacher', 'class_student', 'subject', 'student_cat', 'student_exam']
+
+    # validate the subjects to be entered
+    def validate_subject(self, subject_name):
+        expected_subject_names = [
+            'english', 'maths', 'kiswahili', 'physics',
+            'chemistry', 'biology', 'geography', 'history',
+            'cre', 'business_studies', 'computer_studies', 'agriculture'
+        ]
+
+        cleaned_subject_name = subject_name.lower().replace(" ", "_")
+
+        if cleaned_subject_name not in expected_subject_names:
+            raise serializers.ValidationError({'subject': f'Invalid Subject. Instead use: {', '.join(expected_subject_names)}'})
+        return cleaned_subject_name
+
+    # validate the class name
+    def validate_class_name(self, class_name):
+        expected_class_name = ['F1', 'F2', 'F3' , 'F4']
+        cleaned_class_name = class_name.upper().strip()
+
+        if cleaned_class_name not in expected_class_name:
+            raise serializers.ValidationError({'class_name': f'Invalid Class Name. Instead use {', '.join(expected_class_name)}'})
+        return cleaned_class_name
+    
+    # validate the stream name
+    def validate_stream_name(self, stream_name):
+        expected_stream_names = ['E', 'W']
+        cleaned_stream_name = stream_name.upper().strip()
+
+        if cleaned_stream_name not in expected_stream_names:
+            raise serializers.ValidationError({'stream_name': f"Stream Name not Valid. Please use either of {', '.join(expected_stream_names)}"})
+        return cleaned_stream_name
+
+    def create(self, validated_data):
+        
+        # Assign class_teacher dynamically from the logged in teacher
+        validated_data['class_teacher'] = self.context['request'].user
+
+        # Stream
+        stream = validated_data.pop('stream_name')
+        try:
+            stream_name = Stream.objects.get(name=stream)
+        except Stream.DoesNotExist:
+            raise serializers.ValidationError({'stream_name': 'Stream Not Found!'})
+        validated_data['stream_name'] = stream_name
+
+        # Class
+        class_name = validated_data.pop('class_name')
+        try:
+            name = Class.objects.get(name=class_name)
+        except Class.DoesNotExist:
+            raise serializers.ValidationError({'class_name': 'Class Not Found!'})
+        validated_data['class_name'] = name
+
+        # get the student code, then if it exists, get the subject and its associated cat and exam
+        student = validated_data.pop('class_student')
+        try:
+            student_code = Student.objects.get(student_code = student)
+        except Student.DoesNotExist:
+            raise serializers.ValidationError({'class_student': 'Student with the code does not exist!'})
+        validated_data['class_student'] = student_code
+
+        # Subject
+        subject_name = validated_data.pop('subject')
+        try:
+            subject = Subject.objects.get(name__iexact=subject_name.replace("_", " "))
+        except Subject.DoesNotExist:
+            raise serializers.ValidationError({'subject': 'Subject does not exist!'})
+        validated_data['subject'] = subject
+
+        # Exam
+        try:
+            exam = ExamGrading.objects.get(student = student_code)
+            if exam:
+                marks = exam.marks
+            exam_marks = marks
+        except ExamGrading.DoesNotExist:
+            raise serializers.ValidationError({'student_exam': 'Exam Not Done!'})
+        validated_data['student_exam'] = exam_marks
+
+        # CAT
+        try:
+            cat = CatGrading.objects.get(student=student_code)
+            if cat:
+                marks = cat.marks
+            cat_marks = marks
+        except CatGrading.DoesNotExist:
+            raise serializers.ValidationError({'student_cat': 'Cat Not Done!'})
+        validated_data['student_cat'] = cat_marks
+        return super().create(validated_data)  
 
