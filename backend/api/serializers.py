@@ -8,7 +8,7 @@ from .models import (
     CustomUser, Role, Parent, Teacher, 
     Student, Subject, Class, Stream, 
     Announcement, CatGrading, Cats, Exam, 
-    ExamGrading, CatAndExam
+    ExamGrading, CatAndExam, StreamClassSubjects
 )
 
 # Role Serializer
@@ -294,6 +294,62 @@ class StreamSerializer(serializers.ModelSerializer):
         # create a stream
         stream = Stream.objects.create(class_name=class_instance, name=stream_name)
         return stream
+    
+# stream_classtudent code serializer
+class StreamClassSubjectSerializer(serializers.ModelSerializer):
+
+    student_code = serializers.CharField()
+    student_teacher = serializers.CharField(source='student_teacher.teachers.teacher_code', read_only=True)
+    student_class = serializers.CharField(read_only=True)
+    student_stream = serializers.CharField(read_only=True)
+    subject_count = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = StreamClassSubjects
+        fields = ['id', 'student_code', 'student_teacher', 'student_class', 'student_stream', 'subject_count']
+
+    # function to validate the student code
+    def validate_student_code(self, code):
+
+        if not code.startswith('S-') or not code[2:].isdigit():
+            raise serializers.ValidationError({'student_code': 'Student Code should start with "S-" followed by numbers. Eg. S-001'})
+        return code
+    
+    def create(self, validated_data):
+        student_code = validated_data.get('student_code')
+
+        # get the logged in teacher dynamically
+        validated_data['student_teacher'] = self.context['request'].user
+
+        # Check if the student exists in Student table
+        try:
+            student = Student.objects.get(student_code=student_code)
+        except Student.DoesNotExist:
+            raise serializers.ValidationError({'student_code': 'Student does not exist in records!'})
+        
+        student_class_name = self.context.get('student_class')
+        if not student_class_name:
+            raise serializers.ValidationError({'student_class': 'Student class is not specified in context!'})
+        
+
+        try:
+            student_class = Class.objects.get(name__iexact=student_class_name)
+        except Class.DoesNotExist:
+            raise serializers.ValidationError({'student_class': 'Class Does  Not Exist!'})
+        
+        # Count how many students already assigned to this class
+        class_students = StreamClassSubjects.objects.filter(student_class=student_class.name)
+
+        if class_students.count() >= 40:
+            raise serializers.ValidationError({'student_class': 'Maximum number of students (40) reached for this class.'})
+        
+        # Assign stream based on existing student count
+        stream_name = 'E' if class_students.count() < 20 else 'W'
+
+        validated_data['student_class'] = student_class.name
+        validated_data['student_stream'] = stream_name
+
+        return super().create(validated_data)
     
 # Announcement Serializer
 class AnnouncementSerializer(serializers.ModelSerializer):
@@ -863,4 +919,5 @@ class CatAndExamSerailizer(serializers.ModelSerializer):
             raise serializers.ValidationError({'student_cat': 'Cat Not Done!'})
         validated_data['student_cat'] = cat_marks
         return super().create(validated_data)  
+
 

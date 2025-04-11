@@ -212,6 +212,43 @@ class Stream(models.Model):
         if not self.stream_name:
             self.stream_name = self.create_stream_name(self.class_name.name, self.name)
         super().save(*args, **kwargs)
+
+# Class Stream model
+class StreamClassSubjects(models.Model):
+    student_code = models.CharField(max_length=20, unique=True)
+    student_teacher = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='stream_class_subject')
+    student_class = models.CharField(max_length=10)
+    student_stream = models.CharField(max_length=10)
+    subject_count = models.IntegerField()
+
+    is_english = models.BooleanField(default=True)
+    is_maths = models.BooleanField(default=True)
+    is_kiswahili = models.BooleanField(default=True)
+
+    is_chemistry = models.BooleanField(default=True)
+    is_physics = models.BooleanField(default=True)
+    is_biology = models.BooleanField(default=True)
+
+    is_geography = models.BooleanField(default=True)
+    is_cre = models.BooleanField(default=True)
+    is_history = models.BooleanField(default=True)
+
+    is_computer_studies = models.BooleanField(default=True)
+    is_business_studies = models.BooleanField(default=True)
+    is_agriculture = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f'{self.student_code} from {self.student_class}{self.student_stream}'
+    
+    def save(self, *args, **kwargs):
+
+        subject_fields = [
+        'is_maths', 'is_english', 'is_kiswahili', 'is_physics',
+        'is_chemistry', 'is_biology', 'is_history', 'is_cre',
+        'is_geography', 'is_business_studies', 'is_computer_studies', 'is_agriculture'
+    ]
+        self.subject_count = sum(1 for field in subject_fields if getattr(self, field, False))
+        super().save(*args, **kwargs)
     
 # Announcement model
 class Announcement(models.Model):

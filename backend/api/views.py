@@ -3,12 +3,12 @@ from django.shortcuts import render, get_object_or_404
 from .models import (
     CustomUser, Role, Parent, Teacher, Student, 
     Subject, Class, Stream, Announcement, CatGrading, 
-    Cats, Exam, ExamGrading, CatAndExam
+    Cats, Exam, ExamGrading, CatAndExam, StreamClassSubjects
 )
 from .serializers import (
     CustomUserSerializer, RoleSerializer, TeacherSerializer, ParentSerializer, StudentSerializer,
     SubjectSerializer, ClassSerializer, StreamSerializer, AnnouncementSerializer, CatGradingSerializer, 
-    CatSerializer, ExamSerializer, ExamGradingSerializer, CatAndExamSerailizer
+    CatSerializer, ExamSerializer, ExamGradingSerializer, CatAndExamSerailizer, StreamClassSubjectSerializer
 )
 
 from rest_framework import response, status, permissions
@@ -255,6 +255,16 @@ def create_exam_grade_view(request):
 @permission_classes([IsTeacher])
 def create_exam_and_cat_view(request):
     serializer = CatAndExamSerailizer(data=request.data, context={'request': request})
+    if serializer.is_valid():
+        serializer.save()
+        return response.Response({'message': 'Successful'}, status=status.HTTP_200_OK)
+    return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# function to generate a student with class and stream
+@api_view(['POST'])
+@permission_classes([IsTeacher])
+def create_class_stream_subject(request):
+    serializer = StreamClassSubjectSerializer(data=request.data, context={'request': request, 'student_class': 'F1'})
     if serializer.is_valid():
         serializer.save()
         return response.Response({'message': 'Successful'}, status=status.HTTP_200_OK)
