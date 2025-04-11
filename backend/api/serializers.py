@@ -8,7 +8,7 @@ from .models import (
     CustomUser, Role, Parent, Teacher, 
     Student, Subject, Class, Stream, 
     Announcement, CatGrading, Cats, Exam, 
-    ExamGrading, CatAndExam, StreamClassSubjects
+    ExamGrading, CatAndExam, StreamClassSubjects, CatAndExamGrading
 )
 
 # Role Serializer
@@ -919,5 +919,204 @@ class CatAndExamSerailizer(serializers.ModelSerializer):
             raise serializers.ValidationError({'student_cat': 'Cat Not Done!'})
         validated_data['student_cat'] = cat_marks
         return super().create(validated_data)  
+
+# Cat And Exam Grading
+class CatAndExamGradingSerializer(serializers.ModelSerializer):
+    student_teacher = serializers.CharField(source='student_teacher.teachers.student_code', read_only=True)
+    student_code = serializers.CharField()
+    student_subject = serializers.CharField()
+    subject_cat_marks = serializers.IntegerField(read_only=True)
+    subject_exam_marks = serializers.IntegerField(read_only=True)
+    student_class = serializers.CharField(read_only=True)
+    student_stream = serializers.CharField(read_only=True)
+    subject_total = serializers.IntegerField(read_only=True)
+    subject_grade = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = CatAndExamGrading
+        fields = [
+            'id', 'student_teacher', 'student_code', 'student_subject', 
+            'subject_cat_marks', 'subject_exam_marks', 'student_class', 'student_stream', 
+            'subject_total', 'subject_grade'
+        ]
+
+    # validate the student code
+    def validate_student_code(self, code):
+        if not code.upper().startswith('S-'):
+            raise serializers.ValidationError({'student_code': 'Invalid Student Code!'})
+        return code
+    
+    # validate the subject for the student
+    def validate_student_subject(self, subject):
+        expected_subjects = {
+            'english' :'English',
+            'kiswahili': 'Kiswahili',
+            'maths': 'Maths',
+            'chemistry': 'Chemistry',
+            'physics': 'Physics',
+            'biology': 'Biology',
+            'geography': 'Geography',
+            'history': 'History',
+            'cre': 'Cre',
+            'agriculture': 'Agriculture',
+            'business_studies': 'Business_Studies',
+            'computer_studies': 'Computer_Studies'
+        }
+
+        subject_key = subject.lower()
+        if subject_key not in expected_subjects:
+            allowed_list = ', '.join(expected_subjects.values())
+            raise serializers.ValidationError({'student_subject': f'Invalid Subject Name. Indtead, use: {allowed_list}'})
+        return expected_subjects[subject_key]
+
+    def create(self, validated_data):
+        # Get the teacher automatically
+        validated_data['student_teacher'] = self.context['request'].user
+
+        # get the student code
+        input_student = validated_data.pop('student_code')
+        try:
+            student_code = Student.objects.get(student_code=input_student)
+        except Student.DoesNotExist:
+            raise serializers.ValidationError({'student_code': 'Student with the code is not available!'})
+        validated_data['student_code'] = student_code
+
+        # Class and stream
+        try:
+            student = StreamClassSubjects.objects.get(student_code=input_student)
+            if student:
+                student_class = student.student_class
+                student_stream = student.student_stream
+            student_class = student_class
+            student_stream = student_stream
+        except StreamClassSubjects.DoesNotExist:
+            raise serializers.ValidationError({'student_class': 'Student not in class'})
+        
+        validated_data['student_class'] = student_class
+        validated_data['student_stream'] = student_stream
+
+        # Subject
+        input_subject = validated_data.pop('student_subject')
+        try:
+            subject = Subject.objects.get(name=input_subject)
+        except Subject.DoesNotExist:
+            raise serializers.ValidationError({'student_subject'})
+        validated_data['student_subject'] = subject
+
+        # get subject cat and exam marks
+        try:
+            subject_exam_marks = ExamGrading.objects.get(subject=subject)
+            exam_marks = subject_exam_marks.marks
+        except ExamGrading.DoesNotExist:
+            raise serializers.ValidationError({'subject_exam_marks': 'Subject not graded!'})
+        validated_data['subject_exam_marks'] = exam_marks
+
+        try:
+            subject_cat_marks = CatGrading.objects.get(subject=subject)
+            cat_marks = subject_cat_marks.marks
+        except CatGrading.DoesNotExist:
+            raise serializers.ValidationError({'subject_cat_marks': 'Subject Not Graded!'})
+        validated_data['subject_cat_marks'] = cat_marks
+
+        # function to calculate the final grade
+        def calculate_grade(total):
+            if total >= 70:
+                return 'A'
+            
+            elif total >= 60:
+                return 'B'
+            
+            elif total >= 50:
+                return 'C'
+            
+            elif total >= 40:
+                return 'D'
+            
+            elif total >= 30:
+                return 'E'
+            
+            else:
+                return 'FAIL'
+
+        total_marks = exam_marks + cat_marks
+        validated_data['subject_total'] = total_marks
+
+        subject_grade = calculate_grade(total_marks)
+        validated_data['subject_grade'] = subject_grade
+
+        # assign marks to the specified subject
+        if subject.name == 'English':
+            validated_data['is_english_cat'] = cat_marks
+            validated_data['is_english_exam'] = exam_marks
+            validated_data['is_english_total'] = total_marks
+            validated_data['is_english_grade'] = subject_grade
+
+        if subject.name == 'Kiswahili':
+            validated_data['is_kiswahili_cat'] = cat_marks
+            validated_data['is_kiswahili_exam'] = exam_marks
+            validated_data['is_kiswahili_total'] = total_marks
+            validated_data['is_kiswahili_grade'] = subject_grade
+
+        if subject.name == 'Maths':
+            validated_data['is_maths_cat'] = cat_marks
+            validated_data['is_maths_exam'] = exam_marks
+            validated_data['is_maths_total'] = total_marks
+            validated_data['is_maths_grade'] = subject_grade
+        
+        if subject.name == 'Physics':
+            validated_data['is_physics_cat'] = cat_marks
+            validated_data['is_physics_exam'] = exam_marks
+            validated_data['is_physics_total'] = total_marks
+            validated_data['is_physics_grade'] = subject_grade
+
+        if subject.name == 'Chemistry':
+            validated_data['is_chemistry_cat'] = cat_marks
+            validated_data['is_chemistry_exam'] = exam_marks
+            validated_data['is_chemistry_total'] = total_marks
+            validated_data['is_chemistry_grade'] = subject_grade
+
+        if subject.name == 'Biology':
+            validated_data['is_biology_cat'] = cat_marks
+            validated_data['is_biology_exam'] = exam_marks
+            validated_data['is_biology_total'] = total_marks
+            validated_data['is_biology_grade'] = subject_grade
+
+        if subject.name == 'Geography':
+            validated_data['is_geography_cat'] = cat_marks
+            validated_data['is_geography_exam'] = exam_marks
+            validated_data['is_geography_total'] = total_marks
+            validated_data['is_geography_grade'] = subject_grade
+
+        if subject.name == 'Cre':
+            validated_data['is_cre_cat'] = cat_marks
+            validated_data['is_cre_exam'] = exam_marks
+            validated_data['is_cre_total'] = total_marks
+            validated_data['is_cre_grade'] = subject_grade
+
+        if subject.name == 'History':
+            validated_data['is_history_cat'] = cat_marks
+            validated_data['is_history_exam'] = exam_marks
+            validated_data['is_history_total'] = total_marks
+            validated_data['is_history_grade'] = subject_grade
+
+        if subject.name == 'Business_studies':
+            validated_data['is_business_studies_cat'] = cat_marks
+            validated_data['is_business_studies_exam'] = exam_marks
+            validated_data['is_business_studies_total'] = total_marks
+            validated_data['is_business_studies_grade'] = subject_grade
+
+        if subject.name == 'Computer_studies':
+            validated_data['is_computer_studies_cat'] = cat_marks
+            validated_data['is_computer_studies_exam'] = exam_marks
+            validated_data['is_computer_studies_total'] = total_marks
+            validated_data['is_computer_studies_grade'] = subject_grade
+
+        if subject.name == 'Agriculture':
+            validated_data['is_agriculture_cat'] = cat_marks
+            validated_data['is_agriculture_exam'] = exam_marks
+            validated_data['is_agriculture_total'] = total_marks
+            validated_data['is_agriculture_grade'] = subject_grade
+
+        return super().create(validated_data)
 
 

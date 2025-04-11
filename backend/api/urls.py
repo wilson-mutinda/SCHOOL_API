@@ -20,5 +20,6 @@ urlpatterns = [
     path('create_exam/', views.create_exam_view, name='exam'),
     path('create_exam_grade/', views.create_exam_grade_view, name='exam_grade'),
     path('create_exam_and_cat/', views.create_exam_and_cat_view, name='exam_and_cat'),
-    path('create_class_stream_subject/', views.create_class_stream_subject, name='class_stream_subject'),
+    path('create_class_stream_subject/', views.create_class_stream_subject_view, name='class_stream_subject'),
+    path('create_overall_subject_grade/', views.create_overall_subject_grade_view, name='overall_suject_grade'),
 ]

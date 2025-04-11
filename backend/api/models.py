@@ -516,3 +516,78 @@ class CatAndExam(models.Model):
 
     def __str__(self):
         return f'{self.class_student.student_code}: CAT: ({self.student_cat}) EXAM: ({self.student_exam}) '
+    
+# model to calculate both exam and cat
+class CatAndExamGrading(models.Model):
+    student_teacher = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='cat_and_exam_grading')
+    student_code = models.CharField()
+    student_subject = models.CharField(max_length=100, unique=True)
+    subject_cat_marks = models.IntegerField()
+    subject_exam_marks = models.IntegerField()
+    student_class = models.CharField(max_length=10)
+    student_stream = models.CharField(max_length=10)
+    subject_total = models.IntegerField()
+    subject_grade = models.CharField(max_length=10)
+
+    is_english_cat = models.IntegerField(default=0)
+    is_english_exam = models.IntegerField(default=0)
+    is_english_total = models.IntegerField(default=0)
+    is_english_grade = models.CharField(default=0)
+
+    is_maths_cat = models.IntegerField(default=0)
+    is_maths_exam = models.IntegerField(default=0)
+    is_maths_total = models.IntegerField(default=0)
+    is_maths_grade = models.CharField(default=0)
+
+    is_kiswahili_cat = models.IntegerField(default=0)
+    is_kiswahili_exam = models.IntegerField(default=0)
+    is_kiswahili_total = models.IntegerField(default=0)
+    is_kiswahili_grade = models.CharField(default=0)
+
+    is_physics_cat = models.IntegerField(default=0)
+    is_physics_exam = models.IntegerField(default=0)
+    is_physics_total = models.IntegerField(default=0)
+    is_physics_grade = models.CharField(default=0)
+
+    is_chemistry_cat = models.IntegerField(default=0)
+    is_chemistry_exam = models.IntegerField(default=0)
+    is_chemistry_total = models.IntegerField(default=0)
+    is_chemistry_grade = models.CharField(default=0)
+
+    is_biology_cat = models.IntegerField(default=0)
+    is_biology_exam = models.IntegerField(default=0)
+    is_biology_total = models.IntegerField(default=0)
+    is_biology_grade = models.CharField(default=0)
+
+    is_geography_cat = models.IntegerField(default=0)
+    is_geography_exam = models.IntegerField(default=0)
+    is_geography_total = models.IntegerField(default=0)
+    is_geography_grade = models.CharField(default=0)
+
+    is_cre_cat = models.IntegerField(default=0)
+    is_cre_exam = models.IntegerField(default=0)
+    is_cre_total = models.IntegerField(default=0)
+    is_cre_grade = models.CharField(default=0)
+
+    is_history_cat = models.IntegerField(default=0)
+    is_history_exam = models.IntegerField(default=0)
+    is_history_total = models.IntegerField(default=0)
+    is_history_grade = models.CharField(default=0)
+
+    is_agriculture_cat = models.IntegerField(default=0)
+    is_agriculture_exam = models.IntegerField(default=0)
+    is_agriculture_total = models.IntegerField(default=0)
+    is_agriculture_grade = models.CharField(default=0)
+
+    is_computer_studies_cat = models.IntegerField(default=0)
+    is_computer_studies_exam = models.IntegerField(default=0)
+    is_computer_studies_total = models.IntegerField(default=0)
+    is_computer_studies_grade = models.CharField(default=0)
+
+    is_business_studies_cat = models.IntegerField(default=0)
+    is_business_studies_exam = models.IntegerField(default=0)
+    is_business_studies_total = models.IntegerField(default=0)
+    is_business_studies_grade = models.CharField(default=0)
+
+    def __str__(self):
+        return f'{self.student_code} in {self.student_class}{self.student_stream}'
