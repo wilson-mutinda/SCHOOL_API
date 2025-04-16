@@ -301,3 +301,87 @@ def create_report_form_view(request):
         serializer.save()
         return response.Response({'message': 'Report Generated!'}, status=status.HTTP_200_OK)
     return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# function class to combine both admin and teacher to have same priviledges
+class IsAdminOrTeacher(permissions.BasePermission):
+    def has_permission(self, request, view):
+        return request.user.is_authenticated and (request.user.is_admin or request.user.is_teacher)
+
+# function to calcukate the number of teachers
+@api_view(['GET'])
+@permission_classes([IsAdminOrTeacher])
+def get_the_number_of_registered_teachers(request):
+    teachers = Teacher.objects.all()
+    total = teachers.count()
+
+    return response.Response({
+        'message': f"Successful",
+        'Total': total
+    }, status=status.HTTP_200_OK)
+
+# function to ensure admin can view and chane teacher details
+@api_view(['GET', 'PATCH', 'DELETE'])
+@permission_classes([IsAdmin])
+def retreive_update_destoy_teacher_info_view(request, pk):
+
+    try:
+        teacher = Teacher.objects.get(pk=pk)
+    except Teacher.DoesNotExist:
+        return response.Response({'message': 'Teacher Not Available!'}, status=status.HTTP_404_NOT_FOUND)
+    
+    if request.method == 'GET':
+        serializer = TeacherSerializer(teacher)
+        return response.Response(serializer.data, status=status.HTTP_200_OK)
+    elif request.method == 'PATCH':
+        serializer = TeacherSerializer(teacher, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return response.Response(serializer.data, status=status.HTTP_200_OK)
+    elif request.method == 'DELETE':
+        teacher.delete()
+        return response.Response({'message': 'Teacher deleted Successfully!'}, status=status.HTTP_204_NO_CONTENT)
+    return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# function to ensure admin can view and update student dtails
+@api_view(['GET', 'PATCH', 'DELETE'])
+@permission_classes([IsAdminOrTeacher])
+def retreive_update_delete_student_info_view(request, pk):
+    try:
+        student = Student.objects.get(pk=pk)
+        if request.method == 'GET':
+            serializer = StudentSerializer(student)
+            return response.Response(serializer.data, status=status.HTTP_200_OK)
+        elif request.method == 'PATCH':
+            serializer = StudentSerializer(student, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return response.Response(serializer.data, status=status.HTTP_200_OK)
+        elif request.method == 'DELETE':
+            student.delete()
+            return response.Response({'message': 'Student Deleted'}, status=status.HTTP_204_NO_CONTENT)
+        return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except Student.DoesNotExist:
+        return response.Response({'message': 'Student not found!'}, status=status.HTTP_404_NOT_FOUND)
+
+# function to ensure  an admin can view and update parent details
+@api_view(['GET', 'PATCH', 'DELETE'])
+@permission_classes([IsAdmin])
+def retreive_update_delete_parent_info_view(request, parent_code):
+    
+    try:
+        parent = Parent.objects.get(parent_code=parent_code)
+
+        if request.method == 'GET':
+            serializer = ParentSerializer(parent)
+            return response.Response(serializer.data, status=status.HTTP_200_OK)
+        elif request.method == 'PATCH':
+            serializer = ParentSerializer(parent, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return response.Response(serializer.errors, status=status.HTTP_200_OK)
+        elif request.method == 'DELETE':
+            parent.delete()
+            return response.Response({'message': 'Parent Deleted Successfully!'}, status=status.HTTP_204_NO_CONTENT)
+        return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except Parent.DoesNotExist:
+        return response.Response({'message': 'Parent Does not Exist!'}, status=status.HTTP_404_NOT_FOUND)

@@ -24,4 +24,8 @@ urlpatterns = [
     path('create_overall_subject_grade/', views.create_overall_subject_grade_view, name='overall_suject_grade'),
     path('create_final_grade/', views.create_final_grade_view, name='final_grade'),
     path('create_report_form/', views.create_report_form_view, name='report_form'),
+    path('all_teachers/', views.get_the_number_of_registered_teachers, name='all_teachers'),
+    path('teacher_info/<int:pk>/', views.retreive_update_destoy_teacher_info_view, name='teacher_info'),
+    path('student_info/<int:pk>/', views.retreive_update_delete_student_info_view, name='student_info'),
+    path('parent_info/<str:parent_code>/', views.retreive_update_delete_parent_info_view, name='parent_info'),
 ]
