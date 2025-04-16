@@ -4,13 +4,13 @@ from .models import (
     CustomUser, Role, Parent, Teacher, Student, 
     Subject, Class, Stream, Announcement, CatGrading, 
     Cats, Exam, ExamGrading, CatAndExam, StreamClassSubjects,
-    CatAndExamGrading
+    CatAndExamGrading, FinalGrade
 )
 from .serializers import (
     CustomUserSerializer, RoleSerializer, TeacherSerializer, ParentSerializer, StudentSerializer,
     SubjectSerializer, ClassSerializer, StreamSerializer, AnnouncementSerializer, CatGradingSerializer, 
     CatSerializer, ExamSerializer, ExamGradingSerializer, CatAndExamSerailizer, StreamClassSubjectSerializer,
-    CatAndExamGradingSerializer
+    CatAndExamGradingSerializer, FinalGradeSerializer
 )
 
 from rest_framework import response, status, permissions
@@ -280,4 +280,14 @@ def create_overall_subject_grade_view(request):
     if serializer.is_valid():
         serializer.save()
         return response.Response({'message': 'Successful'}, status=status.HTTP_200_OK)
+    return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# function to get the final grade
+@api_view(['POST'])
+@permission_classes([IsTeacher])
+def create_final_grade_view(request):
+    serializer = FinalGradeSerializer(data=request.data, context={'request': request})
+    if serializer.is_valid():
+        serializer.save()
+        return response.Response({'message': 'Grading Successful'}, status=status.HTTP_201_CREATED)
     return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

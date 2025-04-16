@@ -8,7 +8,7 @@ from .models import (
     CustomUser, Role, Parent, Teacher, 
     Student, Subject, Class, Stream, 
     Announcement, CatGrading, Cats, Exam, 
-    ExamGrading, CatAndExam, StreamClassSubjects, CatAndExamGrading
+    ExamGrading, CatAndExam, StreamClassSubjects, CatAndExamGrading, FinalGrade
 )
 
 # Role Serializer
@@ -976,10 +976,10 @@ class CatAndExamGradingSerializer(serializers.ModelSerializer):
         # get the student code
         input_student = validated_data.pop('student_code')
         try:
-            student_code = Student.objects.get(student_code=input_student)
+            Student.objects.get(student_code=input_student)
         except Student.DoesNotExist:
             raise serializers.ValidationError({'student_code': 'Student with the code is not available!'})
-        validated_data['student_code'] = student_code
+        validated_data['student_code'] = input_student
 
         # Class and stream
         try:
@@ -1119,4 +1119,66 @@ class CatAndExamGradingSerializer(serializers.ModelSerializer):
 
         return super().create(validated_data)
 
+# FinalGrade Serializer
+class FinalGradeSerializer(serializers.ModelSerializer):
 
+    student = serializers.CharField()
+    teacher = serializers.CharField(source='teacher.teachers.teacher_code', read_only=True)
+    total_subjects = serializers.IntegerField(read_only=True)
+    total_marks = serializers.IntegerField(read_only=True)
+    final_grade = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = FinalGrade
+        fields = ['id', 'student', 'teacher', 'total_subjects', 'total_marks', 'final_grade']
+
+    # validate the format of the student code
+    def validate_student(self, code):
+        pattern = r'^S-\d+$'
+        if not re.match(pattern, code):
+            raise serializers.ValidationError({'student': 'In   valid Student Code. Please use format: S-<number>'})
+        return code
+    
+    def create(self, validated_data):
+
+        # assign teacher dynamically
+        validated_data['teacher'] = self.context['request'].user
+        student_code = validated_data['student']
+
+        # Student
+        try:
+            student = CatAndExamGrading.objects.get(student_code = student_code)
+            subject_list = []
+            subject_marks = []
+
+            if student.is_english_total != 0:
+                subject_list.append('English')
+                subject_marks.append(student.is_english_total)
+            
+            if not subject_list:
+                raise serializers.ValidationError({'total_subjects': 'No valid subject marks found'})
+            
+            validated_data['total_subjects'] = len(subject_list)
+            validated_data['total_marks'] = sum(subject_marks)
+
+            # function to calcualte the final_grade
+            def calculate_final_grade(average):
+                if average >= 70:
+                    return 'A'
+                elif average >= 60:
+                    return 'B'
+                elif average >= 50:
+                    return 'C'
+                elif average >= 40:
+                    return 'D'
+                elif average >= 30:
+                    return 'E'
+                else:
+                    return 'FAIL'
+            average = validated_data['total_marks'] / validated_data['total_subjects']
+            validated_data['final_grade'] = calculate_final_grade(average)
+            validated_data['student'] = student_code
+        except CatAndExamGrading.DoesNotExist:
+            raise serializers.ValidationError({'student': 'Student Has No Marks!'})
+        
+        return super().create(validated_data)

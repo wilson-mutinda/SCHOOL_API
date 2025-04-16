@@ -521,7 +521,7 @@ class CatAndExam(models.Model):
 class CatAndExamGrading(models.Model):
     student_teacher = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='cat_and_exam_grading')
     student_code = models.CharField()
-    student_subject = models.CharField(max_length=100, unique=True)
+    student_subject = models.CharField(max_length=100)
     subject_cat_marks = models.IntegerField()
     subject_exam_marks = models.IntegerField()
     student_class = models.CharField(max_length=10)
@@ -591,3 +591,14 @@ class CatAndExamGrading(models.Model):
 
     def __str__(self):
         return f'{self.student_code} in {self.student_class}{self.student_stream}'
+    
+# Calculate final student grade
+class FinalGrade(models.Model):
+    teacher = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='final_grade')
+    student = models.CharField(max_length=10)
+    total_subjects = models.IntegerField()
+    total_marks = models.IntegerField()
+    final_grade = models.CharField()
+
+    def __str__(self):
+        return f'{self.student} ({self.final_grade})'
