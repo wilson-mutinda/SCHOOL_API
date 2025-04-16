@@ -4,13 +4,13 @@ from .models import (
     CustomUser, Role, Parent, Teacher, Student, 
     Subject, Class, Stream, Announcement, CatGrading, 
     Cats, Exam, ExamGrading, CatAndExam, StreamClassSubjects,
-    CatAndExamGrading, FinalGrade
+    CatAndExamGrading, FinalGrade, ReportForm
 )
 from .serializers import (
     CustomUserSerializer, RoleSerializer, TeacherSerializer, ParentSerializer, StudentSerializer,
     SubjectSerializer, ClassSerializer, StreamSerializer, AnnouncementSerializer, CatGradingSerializer, 
     CatSerializer, ExamSerializer, ExamGradingSerializer, CatAndExamSerailizer, StreamClassSubjectSerializer,
-    CatAndExamGradingSerializer, FinalGradeSerializer
+    CatAndExamGradingSerializer, FinalGradeSerializer, ReportFormSerializer
 )
 
 from rest_framework import response, status, permissions
@@ -290,4 +290,14 @@ def create_final_grade_view(request):
     if serializer.is_valid():
         serializer.save()
         return response.Response({'message': 'Grading Successful'}, status=status.HTTP_201_CREATED)
+    return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# function to generate a report form 
+@api_view(['POST'])
+@permission_classes([IsTeacher])
+def create_report_form_view(request):
+    serializer = ReportFormSerializer(data=request.data, context={'request': request})
+    if serializer.is_valid():
+        serializer.save()
+        return response.Response({'message': 'Report Generated!'}, status=status.HTTP_200_OK)
     return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

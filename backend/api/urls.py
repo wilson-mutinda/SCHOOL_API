@@ -23,4 +23,5 @@ urlpatterns = [
     path('create_class_stream_subject/', views.create_class_stream_subject_view, name='class_stream_subject'),
     path('create_overall_subject_grade/', views.create_overall_subject_grade_view, name='overall_suject_grade'),
     path('create_final_grade/', views.create_final_grade_view, name='final_grade'),
+    path('create_report_form/', views.create_report_form_view, name='report_form'),
 ]

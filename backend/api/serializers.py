@@ -8,7 +8,8 @@ from .models import (
     CustomUser, Role, Parent, Teacher, 
     Student, Subject, Class, Stream, 
     Announcement, CatGrading, Cats, Exam, 
-    ExamGrading, CatAndExam, StreamClassSubjects, CatAndExamGrading, FinalGrade
+    ExamGrading, CatAndExam, StreamClassSubjects, CatAndExamGrading, 
+    FinalGrade, ReportForm
 )
 
 # Role Serializer
@@ -1181,4 +1182,111 @@ class FinalGradeSerializer(serializers.ModelSerializer):
         except CatAndExamGrading.DoesNotExist:
             raise serializers.ValidationError({'student': 'Student Has No Marks!'})
         
+        return super().create(validated_data)
+
+# Report form serializer
+class ReportFormSerializer(serializers.ModelSerializer):
+
+    class_teacher = serializers.CharField(source='class_teacher.teachers.teacher_code', read_only=True)
+    student_code = serializers.CharField()
+    student_first_name = serializers.CharField(read_only=True)
+    student_last_name = serializers.CharField(read_only=True)
+    student_class = serializers.CharField(read_only=True)
+    student_stream = serializers.CharField(read_only=True)
+    student_average_grade = serializers.CharField(read_only=True)
+    teacher_remarks = serializers.CharField(read_only=True)
+    total_subjects = serializers.IntegerField(read_only=True)
+    total_marks = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = ReportForm
+        fields = [
+            'id', 'class_teacher', 'student_code', 'student_first_name', 
+            'student_last_name', 'student_class', 'student_stream', 'student_average_grade', 
+            'teacher_remarks', 'total_subjects', 'total_marks'
+        ]
+    
+    # validate the student code
+    def validate_student_code(self, code):
+        pattern = r'^S-\d+$'
+        if not re.match(pattern, code):
+            raise serializers.ValidationError({'student_code': 'Invalid Student Code Format,=. Use S-<number> instead!'})
+        return code
+    
+    def create(self, validated_data):
+
+        user = self.context['request'].user
+        validated_data['class_teacher'] = user
+
+        student_code = validated_data.get('student_code')
+
+        try:
+            student = Student.objects.get(student_code=student_code)
+        except Student.DoesNotExist:
+            raise serializers.ValidationError({'student_code': "Student Does Not Exist!"})
+        
+        # assign basic student info
+        validated_data['student_first_name'] = student.user.first_name
+        validated_data['student_last_name'] = student.user.last_name
+
+        try:
+            grading = CatAndExamGrading.objects.filter(student_code=student_code)
+        except CatAndExamGrading.DoesNotExist:
+            raise serializers.ValidationError({'student_code': 'Grading Records not found!'})
+        
+        # initialize counters
+        total_marks = 0
+        total_subjects = 0
+
+        subjects_handled = {
+            "English": ("is_english_cat", "is_english_exam", "is_english_total"),
+            "Maths": ("is_maths_cat", "is_maths_exam", "is_maths_total"),
+            "Kiswahili": ("is_kiswahili_cat", "is_kiswahili_exam", "is_kiswahili_total"),
+
+            "Physics": ("is_physics_cat", "is_physics_exam", "is_physics_total"),
+            "Chemistry": ("is_chemistry_cat", "is_chemistry_exam", "is_chemistry_total"),
+            "Biology": ("is_biology_cat", "is_biology_exam", "is_biology_total"),
+
+            "Geography": ("is_geography_cat", "is_geography_exam", "is_geography_total"),
+            "Cre": ("is_cre_cat", "is_cre_exam", "is_cre_total"),
+            "History": ("is_history_cat", "is_history_exam", "is_history_total"),
+
+            "Business_studies": ("is_business_studies_cat", "is_business_studies_exam", "is_business_studies_total"),
+            "Computer_studies": ("is_computer_studies_cat", "is_computer_studies_exam", "is_computer_studies_total"),
+            "Agriculture": ("is_agriculture_cat", "is_agriculture_exam", "is_agriculture_total"),
+        }
+
+        for grade in grading:
+            subject = grade.student_subject
+            if subject in subjects_handled:
+                cat_field, exam_field, total_field = subjects_handled[subject]
+                validated_data[cat_field] = getattr(grade, cat_field)
+                validated_data[exam_field] = getattr(grade, exam_field)
+                validated_data[total_field] = getattr(grade, total_field)
+
+                total_marks += getattr(grade, total_field)
+                total_subjects += 1
+
+                validated_data['student_class'] = grade.student_class
+                validated_data['student_stream'] = grade.student_stream
+
+        validated_data['total_subjects'] = total_subjects
+        validated_data['total_marks'] = total_marks
+
+        # conpute average and remarks
+        average = total_marks / total_subjects if total_subjects else 0
+        validated_data['student_average_grade'] = f'{average:.2f}'
+
+        if average >= 70:
+            validated_data['teacher_remarks'] = 'Excellent'
+
+        elif average >= 50:
+            validated_data['teacher_remarks'] = 'Good'
+
+        elif average >= 30:
+            validated_data['teacher_remarks'] = 'Fair'
+
+        else:
+            validated_data['teacher_remarks'] = 'FAIL'
+
         return super().create(validated_data)
