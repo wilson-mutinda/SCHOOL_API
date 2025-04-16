@@ -385,3 +385,74 @@ def retreive_update_delete_parent_info_view(request, parent_code):
         return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     except Parent.DoesNotExist:
         return response.Response({'message': 'Parent Does not Exist!'}, status=status.HTTP_404_NOT_FOUND)
+    
+# function to ensure admin can retreive and update a class
+@api_view(['GET', 'PATCH', 'DELETE'])
+@permission_classes([IsAdmin])
+def retreive_update_delete_class_view(request, pk):
+
+    try:
+        name = Class.objects.get(pk=pk)
+
+        if request.method == 'GET':
+            serializer = ClassSerializer(name)
+            return response.Response(serializer.data, status=status.HTTP_200_OK)
+        
+        elif request.method == 'PATCH':
+            serializer = ClassSerializer(name, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return response.Response(serializer.data, status=status.HTTP_200_OK)
+        elif request.method == 'DELETE':
+            name.delete()
+            return response.Response({'message': 'Class Deleted!'}, status=status.HTTP_204_NO_CONTENT)
+        return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except Class.DoesNotExist:
+        return response.Response({'message': 'Class Does Not Exist!'}, status=status.HTTP_204_NO_CONTENT)
+    
+# function for an admin to view the available streams
+@api_view(['GET', 'PATCH', 'DELETE'])
+@permission_classes([IsAdmin])
+def retreive_update_delete_stream_info_view(request, pk):
+
+    try:
+        stream = Stream.objects.get(pk=pk)
+
+        if request.method == 'GET':
+            serializer = StreamSerializer(stream)
+            return response.Response(serializer.data, status=status.HTTP_200_OK)
+        elif request.method == 'PATCH':
+            serializer = StreamSerializer(stream, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return response.Response(serializer.data, status=status.HTTP_200_OK)
+        elif request.method == 'DELETE':
+            stream.delete()
+            return response.Response({'message': 'Stream Deleted!'}, status=status.HTTP_204_NO_CONTENT)
+        return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except Stream.DoesNotExist:
+        return response.Response({'message': 'Stream Does Not Exist!'}, status=status.HTTP_204_NO_CONTENT)
+    
+# function to ensure an admin and teacher can be able to view student reaults
+@api_view(['GET', 'PATCH', 'DELETE'])
+@permission_classes([IsAdminOrTeacher])
+def retreive_update_delete_report_form_admin_teacher_view(request, student_code):
+
+    try:
+        student = ReportForm.objects.get(student_code=student_code)
+
+        if request.method == 'GET':
+            serializer = ReportFormSerializer(student)
+            return response.Response(serializer.data, status=status.HTTP_200_OK)
+        
+        elif request.method == 'PATCH':
+            serializer = ReportFormSerializer(student, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return response.Response(serializer.data, status=status.HTTP_200_OK)
+        elif request.method == 'DELETE':
+            student.delete()
+            return response.Response({'message': 'Student Results Deleted!'}, status=status.HTTP_204_NO_CONTENT)
+        return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except ReportForm.DoesNotExist:
+        return response.Response({'message': 'Student Not Graded!'}, status=status.HTTP_404_NOT_FOUND)

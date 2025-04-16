@@ -28,4 +28,7 @@ urlpatterns = [
     path('teacher_info/<int:pk>/', views.retreive_update_destoy_teacher_info_view, name='teacher_info'),
     path('student_info/<int:pk>/', views.retreive_update_delete_student_info_view, name='student_info'),
     path('parent_info/<str:parent_code>/', views.retreive_update_delete_parent_info_view, name='parent_info'),
+    path('report_form/<str:student_code>/', views.retreive_update_delete_report_form_admin_teacher_view, name='report_form_admin'),
+    path('class_info/<int:pk>/', views.retreive_update_delete_class_view, name='class_info'),
+    path('stream_info/<int:pk>/', views.retreive_update_delete_stream_info_view, name='stream_info'),
 ]
