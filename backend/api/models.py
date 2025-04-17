@@ -264,6 +264,13 @@ class Announcement(models.Model):
 
     def __str__(self):
         return f'{self.title} created by {self.created_by.username}'
+    
+# class model to create term
+class Term(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+
+    def __str__(self):
+        return self.name
 
 # CAT MODEL
 class Cats(models.Model):
@@ -277,6 +284,7 @@ class Cats(models.Model):
     date_done = models.DateField()
     start_time = models.TimeField()
     cat_code = models.CharField(max_length=20, unique=True)
+    cat_term = models.CharField(max_length=20)
     end_time = models.TimeField()
 
     is_english = models.BooleanField(default=False)
@@ -326,7 +334,6 @@ class Cats(models.Model):
             self.end_time = self.calculate_end_time()
 
         super().save(*args, **kwargs)
-
 
 # CATGRADING MODEL
 class CatGrading(models.Model):
@@ -615,6 +622,7 @@ class ReportForm(models.Model):
     teacher_remarks = models.TextField()
     total_subjects = models.IntegerField()
     total_marks = models.IntegerField()
+    term_name = models.CharField(max_length=20, unique=True)
 
     is_english_cat = models.IntegerField(default=0)
     is_english_exam = models.IntegerField(default=0)

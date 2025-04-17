@@ -9,7 +9,7 @@ from .models import (
     Student, Subject, Class, Stream, 
     Announcement, CatGrading, Cats, Exam, 
     ExamGrading, CatAndExam, StreamClassSubjects, CatAndExamGrading, 
-    FinalGrade, ReportForm
+    FinalGrade, ReportForm, Term
 )
 
 # Role Serializer
@@ -372,6 +372,30 @@ class AnnouncementSerializer(serializers.ModelSerializer):
         validated_data['target_teachers'] = validated_data.get('target_teachers', False)
 
         return super().create(validated_data)
+    
+# Term Serializer
+class TermSerializer(serializers.ModelSerializer):
+
+    name = serializers.CharField()
+    class Meta:
+        model = Term
+        fields = ['id', 'name']
+
+    # validate term name
+    def validate_name(self, term):
+        expected_names = ['term1', 'term1', 'term3']
+        normalized_names = term.lower()
+
+        if normalized_names not in expected_names:
+            raise serializers.ValidationError({'name': f'Term name not found. Please select from list: {', '.join(expected_names)}'})
+        return term
+    
+    def create(self, validated_data):
+        term_name = validated_data['name']
+        if Term.objects.filter(name=term_name).exists():
+            raise serializers.ValidationError({'name': f'Name ({term_name}) Already exists!'})
+        validated_data['name'] = validated_data['name'].title()
+        return super().create(validated_data)
 
 # Cat Serializer
 class CatSerializer(serializers.ModelSerializer):
@@ -387,15 +411,31 @@ class CatSerializer(serializers.ModelSerializer):
     start_time = serializers.TimeField(format="%H:%M:%s")
     cat_code = serializers.CharField(read_only=True)
     end_time = serializers.TimeField(read_only=True)
+    cat_term = serializers.CharField()
 
     class Meta:
         model = Cats
-        fields = ['id', 'cat_name', 'cat_teacher', 'content', 'cat_class', 'cat_stream', 'subject', 'duration', 'date_done', 'start_time', 'cat_code', 'end_time']
+        fields = [
+            'id', 'cat_name', 'cat_teacher', 'content', 
+            'cat_class', 'cat_stream', 'subject', 'duration', 
+            'date_done', 'start_time', 'cat_code', 'end_time', 
+            'cat_term'
+        ]
 
+    # validate duration
     def validate_duration(self, data):
         if data != timedelta(minutes=40):
             raise serializers.ValidationError('Duration is only 40 minutes!')
         return data
+    
+    # validate term
+    def validate_cat_term(self, term):
+        normalized_name = term.lower()
+        expected_terms = ['term1', 'term2', 'term3']
+
+        if normalized_name not in expected_terms:
+            raise serializers.ValidationError({'cat_term': f'Term Not Allowed. Please use rither of: {', '.join(expected_terms)}'})
+        return term
     
     def create(self, validated_data):
 
@@ -1197,13 +1237,14 @@ class ReportFormSerializer(serializers.ModelSerializer):
     teacher_remarks = serializers.CharField(read_only=True)
     total_subjects = serializers.IntegerField(read_only=True)
     total_marks = serializers.IntegerField(read_only=True)
+    term_name = serializers.CharField(read_only=True)
 
     class Meta:
         model = ReportForm
         fields = [
             'id', 'class_teacher', 'student_code', 'student_first_name', 
             'student_last_name', 'student_class', 'student_stream', 'student_average_grade', 
-            'teacher_remarks', 'total_subjects', 'total_marks'
+            'teacher_remarks', 'total_subjects', 'total_marks', 'term_name'
         ]
     
     # validate the student code
@@ -1217,6 +1258,9 @@ class ReportFormSerializer(serializers.ModelSerializer):
 
         user = self.context['request'].user
         validated_data['class_teacher'] = user
+
+        student_id = validated_data.get('id')
+        
 
         student_code = validated_data.get('student_code')
 
@@ -1288,5 +1332,18 @@ class ReportFormSerializer(serializers.ModelSerializer):
 
         else:
             validated_data['teacher_remarks'] = 'FAIL'
+
+        # assign term name based on number of existing reports for that student
+        existing_terms = ReportForm.objects.filter(student_code=student_code).count()
+
+        if existing_terms == 0:
+            validated_data['term_name'] = 'term1'
+        elif existing_terms == 1:
+            validated_data['term_name'] = 'term2'
+        elif existing_terms == 2:
+            validated_data['term_name'] = 'term3'
+        else:
+            raise serializers.ValidationError({'term_name': 'Maximum number of terms (3) already recorded for this student!'})
+
 
         return super().create(validated_data)
