@@ -626,13 +626,23 @@ class ExamSerializer(serializers.ModelSerializer):
     end_time = serializers.TimeField(read_only=True)
 
     exam_code = serializers.CharField(read_only=True)
+    exam_term = serializers.CharField()
     class Meta:
         model = Exam
         fields = [
             'id', 'exam_name', 'exam_teacher', 'content', 
             'exam_class', 'exam_stream', 'subject', 'duration', 
-            'date_done', 'start_time', 'end_time', 'exam_code'
+            'date_done', 'start_time', 'end_time', 'exam_code', 'exam_term'
         ]
+
+    # validate exam term
+    def validate_exam_term(self, term):
+        normalized_name = term.lower()
+        expected_names = ['term1', 'term2', 'term3']
+
+        if normalized_name not in expected_names:
+            raise serializers.ValidationError({'term_name': f'Invalid Term. Please use one of: {', '.join(expected_names)}'})
+        return term
 
     # validate the duration
     def validate_duration(self, data):
@@ -680,6 +690,9 @@ class ExamSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         # get the teacher dynamically from the logged in user
         validated_data['exam_teacher'] = self.context['request'].user
+
+        # save the term name in title form
+        validated_data['exam_term'] = validated_data['exam_term'].title()
 
         # Class
         exam_class = validated_data.pop('exam_class')

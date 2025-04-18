@@ -71,6 +71,11 @@ class IsAdmin(permissions.BasePermission):
     def has_permission(self, request, view):
         return request.user.is_authenticated and request.user.is_admin
     
+# function class to combine both admin and teacher to have same priviledges
+class IsAdminOrTeacher(permissions.BasePermission):
+    def has_permission(self, request, view):
+        return request.user.is_authenticated and (request.user.is_admin or request.user.is_teacher)
+    
 # Create a role by an authenticated admin
 @api_view(['POST', 'GET'])
 @permission_classes([IsAdmin])
@@ -369,7 +374,7 @@ def create_cat_grade_view(request):
 
 # permit a logged in teacher to create an exam
 @api_view(['POST'])
-@permission_classes([IsTeacher])
+@permission_classes([IsAdminOrTeacher])
 def create_exam_view(request):
     serializer = ExamSerializer(data=request.data, context={'request': request})
     if serializer.is_valid():
@@ -436,11 +441,6 @@ def create_report_form_view(request):
         serializer.save()
         return response.Response({'message': 'Report Generated!'}, status=status.HTTP_200_OK)
     return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-# function class to combine both admin and teacher to have same priviledges
-class IsAdminOrTeacher(permissions.BasePermission):
-    def has_permission(self, request, view):
-        return request.user.is_authenticated and (request.user.is_admin or request.user.is_teacher)
 
 # function to calcukate the number of teachers
 @api_view(['GET'])

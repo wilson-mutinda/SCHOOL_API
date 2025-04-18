@@ -40,12 +40,16 @@ urlpatterns = [
     path('cat_details_admin/<str:cat_code>/', views.retreive_update_delete_cat_admin_view, name='cat_details_admin'),
     # retreive reportform
     path('report_form_admin_info/<str:student_code>/', views.retreive_update_delete_reportform_admin_view, name='report_form_admin'),
+    # create an exam
+    path('create_exam_admin/', views.create_exam_view, name='exam_admin'),
 
     # Teacher Roles
     # Techer to creaate announcement
     path('create_announcement_teacher/', views.create_announcement_teacher_view, name='announcement_teacher'),
     # Get the student exam results
     path('student_results/<str:student>/', views.get_student_exam_marks_admin_teacher_view, name='student_results'),
+    # create exam
+    path('create_exam_teacher/', views.create_exam_view, name='exam_teacher'),
 
     path('create_teacher/', views.create_teacher_view, name='teacher'),
     path('create_parent/', views.create_parent_view, name='parent'),
