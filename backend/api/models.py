@@ -3,6 +3,7 @@ from django.utils import timezone
 from datetime import timedelta, datetime
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group, Permission
 
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 
@@ -62,11 +63,70 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
     objects = CustomUserManager()
 
+    groups = models.ManyToManyField(
+        Group,
+        related_name='customuser_set',
+        blank=True,
+        help_text='The groups this user belongs to',
+        verbose_name='groups'
+
+    )
+    user_permissions = models.ManyToManyField(
+        Permission,
+        related_name='customuser_set',
+        blank=True,
+        help_text='Specific permissions the user has',
+        verbose_name='user permissions'
+    )
+
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['first_name', 'last_name', 'username', 'role']
 
     def __str__(self):
         return f'{self.username} - ({self.role.name})'
+    
+# Custom user model with admin true
+class CustomUserAdmin(AbstractBaseUser, PermissionsMixin):
+    role = models.CharField(max_length=100, default='admin')
+    email = models.EmailField(unique=True)
+    first_name = models.CharField(max_length=200)
+    last_name = models.CharField(max_length=200)
+    username = models.CharField(max_length=200, unique=True)
+
+    date_joined = models.DateTimeField(default=timezone.now)
+    last_login = models.DateTimeField(blank=True, null=True)
+
+    # status flags
+    is_active = models.BooleanField(default=True)
+    is_superuser = models.BooleanField(default=True)
+    is_admin = models.BooleanField(default=True)
+    is_staff = models.BooleanField(default=True)
+    is_teacher = models.BooleanField(default=False)
+    is_student = models.BooleanField(default=False)
+    is_parent = models.BooleanField(default=False)
+
+    objects = CustomUserManager()
+
+    groups = models.ManyToManyField(
+        Group,
+        related_name='customuseradmin_set',
+        help_text='The group this admin belongs to',
+        verbose_name='groups'
+    )
+
+    user_permissions = models.ManyToManyField(
+        Permission,
+        related_name='customuseradmin_set',
+        blank = True,
+        help_text='The permissions the admin has',
+        verbose_name='user permissions'
+    )
+
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['first_name', 'last_name', 'username', 'role']
+
+    def __str__(self):
+        return f'{self.username} - {self.role.name}'
     
 # Teacher Model
 class Teacher(models.Model):
@@ -142,8 +202,8 @@ class Subject(models.Model):
 # student model
 class Student(models.Model):
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='students')
-    parent_code = models.CharField(max_length=100, unique=True)
-    parent_email = models.EmailField(unique=True)
+    parent_code = models.CharField(max_length=100)
+    parent_email = models.EmailField()
     student_code = models.CharField(max_length=100, unique=True)
     subjects = models.ManyToManyField(Subject, related_name='students')
 

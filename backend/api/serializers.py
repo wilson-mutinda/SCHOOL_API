@@ -2,6 +2,7 @@ from rest_framework import serializers
 import re
 from django.core.validators import RegexValidator
 from datetime import timedelta, date, datetime
+from django.contrib.auth.hashers import make_password
 from django.utils import timezone
 
 from .models import (
@@ -9,7 +10,7 @@ from .models import (
     Student, Subject, Class, Stream, 
     Announcement, CatGrading, Cats, Exam, 
     ExamGrading, CatAndExam, StreamClassSubjects, CatAndExamGrading, 
-    FinalGrade, ReportForm, Term
+    FinalGrade, ReportForm, Term, CustomUserAdmin
 )
 
 # Role Serializer
@@ -22,10 +23,6 @@ class RoleSerializer(serializers.ModelSerializer):
         expected_roles = ['admin', 'teacher', 'parent', 'student']
         if name not in expected_roles:
             raise serializers.ValidationError(f'Unexpected Role. Please use either of {', '.join(expected_roles)}')
-        
-        # existing_role = Role.objects.filter(name=name).exists()
-        # if existing_role:
-        #     raise serializers.ValidationError({'name': 'Role already exists!'})
         return name
     
 # Custom User serializer
@@ -39,21 +36,51 @@ class CustomUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
         fields = ['id', 'first_name', 'last_name', 'username', 'email', 'password', 'confirm_password', 'role']
+        extra_kwargs = {
+            'username': {'validators': []},  # Disable default unique validator
+            'email': {'validators': []}      # Disable default unique validator
+        }
 
     def validate(self, data):
+        # Skip password validation if this is an update and password isn't being changed
+        if self.instance and not data.get('password'):
+            data.pop('password', None)
+            data.pop('confirm_password', None)
+            return data
+
         password = data.get('password')
         confirm_password = data.get('confirm_password')
 
         if password and confirm_password and password != confirm_password:
             raise serializers.ValidationError({'confirm_password': 'Password Mismatch!'})
         
-        if len(password) < 8:
+        if password and len(password) < 8:
             raise serializers.ValidationError({'password': 'Password must have at least 8 characters!'})
         
-        if not re.search(r'\d', password):
-            raise serializers.ValidationError({'password': 'Password should hav both characters and digits!'})
+        if password and not re.search(r'\d', password):
+            raise serializers.ValidationError({'password': 'Password should have both characters and digits!'})
         
         return data
+
+    def update(self, instance, validated_data):
+        # Handle role data if provided
+        role_data = validated_data.pop('role', None)
+        if role_data:
+            role_name = role_data.get('name')
+            role, _ = Role.objects.get_or_create(name=role_name)
+            instance.role = role
+
+        # Update password if provided
+        password = validated_data.pop('password', None)
+        if password:
+            instance.set_password(password)
+
+        # Update other fields
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        instance.save()
+        return instance
     
     # Capitalize first name
     def capitalize_first_name(self, first_name):
@@ -86,6 +113,69 @@ class CustomUserSerializer(serializers.ModelSerializer):
         user = CustomUser.objects.create_user(role=role, **validated_data)
         return user
     
+# Class CustomuserAdmin serializer
+class CustomUserAdminSerializer(serializers.ModelSerializer):
+    role = serializers.CharField(default='admin', read_only=True)
+    first_name = serializers.CharField()
+    last_name = serializers.CharField()
+    username = serializers.CharField()
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True)
+    confirm_password = serializers.CharField(write_only=True)
+
+    class Meta:
+        model = CustomUserAdmin
+        fields = ['id', 'first_name', 'last_name', 'username', 'email', 'password', 'confirm_password', 'role']
+
+    def validate(self, data):
+        password = data.get('password')
+        confirm_password = data.get('confirm_password')
+
+        if password and confirm_password and password != confirm_password:
+            raise serializers.ValidationError({'confirm_password': 'Password Mismatch!'})
+        
+        if password and len(password) < 8:
+            raise serializers.ValidationError({'password': 'Passwword should have at least 8  characters'})
+        
+        if password and not re.search(r'\d', password):
+            raise serializers.ValidationError({'password': 'Password should have both characters and digits!'})
+        
+        return data
+    
+    def create(self, validated_data):
+
+        validated_data.pop('confirm_password', None)
+        # create_role
+        role, _ = Role.objects.get_or_create(name='admin')
+        validated_data['first_name'] = validated_data['first_name'].title()
+        validated_data['last_name'] = validated_data['last_name'].title()
+        validated_data['password'] = make_password(validated_data['password'])
+
+        # Ensure flags
+        validated_data['is_admin'] = True
+        validated_data['is_staff'] = True
+        validated_data['is_superuser'] = True
+
+        # create user
+        user = CustomUser.objects.create_user(role=role, **validated_data)
+
+        # save customuseradmin separately
+        CustomUserAdmin.objects.create(
+            role='admin',
+            email=user.email,
+            first_name=user.first_name,
+            last_name=user.last_name,
+            username=user.username,
+            is_admin=True,
+            is_staff=True,
+            is_superuser=True,
+            is_teacher=False,
+            is_student=False,
+            is_parent=False,
+            password=user.password
+        )
+        return user
+    
 # Teacher Serializer
 class TeacherSerializer(serializers.ModelSerializer):
 
@@ -93,12 +183,17 @@ class TeacherSerializer(serializers.ModelSerializer):
     phone = serializers.CharField(validators = [
         RegexValidator(regex=r'(01|07)\d{8}', message='Invalid Phone Number!')
     ])
-    profile_picture = serializers.ImageField()
+    profile_picture = serializers.ImageField(required=False)
     address = serializers.CharField()
     teacher_code = serializers.CharField(read_only=True)
     class Meta:
         model = Teacher
         fields = ['id', 'user', 'phone', 'profile_picture', 'address', 'teacher_code']
+
+    def get_profile_picture(self, obj):
+        if obj.profile_picture:
+            return obj.profile_picture.url
+        return None
 
     def validate_phone(self, phone):
         if len(phone) != 10:
@@ -140,16 +235,36 @@ class TeacherSerializer(serializers.ModelSerializer):
         print("Teacher Created:", teacher)
         return teacher
     
+    # def update(self, instance, validated_data):
+    # # Handle user data
+    #     user_data = validated_data.pop('user', {})
+    #     user = instance.user
+        
+    #     # Update user fields
+    #     for attr, value in user_data.items():
+    #         if attr == 'password':
+    #             user.set_password(value)
+    #         else:
+    #             setattr(user, attr, value)
+    #     user.save()
+        
+    #     # Update teacher fields
+    #     for attr, value in validated_data.items():
+    #         setattr(instance, attr, value)
+    #     instance.save()
+        
+    #     return instance
+    
 # Parent Serializer
 class ParentSerializer(serializers.ModelSerializer):
-
     user = CustomUserSerializer()
-    phone = serializers.CharField(validators = [
-        RegexValidator(regex=r'(01|07)\d{8}', message="Invali Phone Number!")
+    phone = serializers.CharField(validators=[
+        RegexValidator(regex=r'(01|07)\d{8}', message="Invalid Phone Number!")
     ])
     profile_picture = serializers.ImageField()
     address = serializers.CharField()
-    parent_code = serializers.CharField(read_only = True)
+    parent_code = serializers.CharField(read_only=True)
+
     class Meta:
         model = Parent
         fields = ['id', 'user', 'phone', 'profile_picture', 'address', 'parent_code']
@@ -158,38 +273,48 @@ class ParentSerializer(serializers.ModelSerializer):
         if len(phone) != 10:
             raise serializers.ValidationError({'phone': 'Invalid Phone Number!'})
         return phone
-    
+
     def validate_address(self, address):
         return address.capitalize()
-    
+
     def create(self, validated_data):
-        print("Validated Data:", validated_data)
-        # get a user data from the validated data
         user_data = validated_data.pop('user')
         user_data.pop('confirm_password')
-
         user_role = user_data.pop('role', None)
         role_name = user_role.get('name')
 
-        # ensure user role is parent
         if role_name != 'parent':
             raise serializers.ValidationError({'name': "Invalid Role. Role should be 'parent'"})
-        
-        role, _ = Role.objects.get_or_create(name = role_name)
 
-        # set is_parent true before creating a custom user
+        role, _ = Role.objects.get_or_create(name=role_name)
         user_data['is_parent'] = True
-
-        # create custom user
         user = CustomUser.objects.create_user(role=role, **user_data)
-
-        # create parent
         parent = Parent.objects.create(user=user, **validated_data)
         return parent
+
+    def update(self, instance, validated_data):
+        # Extract nested user data
+        user_data = validated_data.pop('user', {})
+        user_instance = instance.user
+
+        # Handle fields inside user
+        for attr, value in user_data.items():
+            if attr in ['confirm_password', 'role']:  # ignore these on update
+                continue
+            setattr(user_instance, attr, value)
+
+        user_instance.save()
+
+        # Update parent instance
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        instance.save()
+        return instance
+
     
 # Student serializer
 class StudentSerializer(serializers.ModelSerializer):
-
     user = CustomUserSerializer()
     parent_code = serializers.CharField()
     parent_email = serializers.EmailField()
@@ -199,24 +324,43 @@ class StudentSerializer(serializers.ModelSerializer):
         model = Student
         fields = ['id', 'user', 'parent_code', 'parent_email', 'student_code']
 
-    # lfunction to check parent code and parent_email exist
     def validate(self, data):
         parent_email = data.get('parent_email')
         parent_code = data.get('parent_code')
 
-        # check if a parent exists with both the matchiong code and email via related customuser
         if not Parent.objects.filter(user__email=parent_email, parent_code=parent_code).exists():
             raise serializers.ValidationError('Parent code and Email do not match or do not exist!')
+
         return data
+
+    def update(self, instance, validated_data):
+        user_data = validated_data.pop('user', None)
+
+        if user_data:
+            user_serializer = CustomUserSerializer(
+                instance.user, 
+                data=user_data, 
+                partial=True
+            )
+            if user_serializer.is_valid():
+                user_serializer.save()
+            else:
+                raise serializers.ValidationError({'user': user_serializer.errors})
+
+        # Update student fields
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        return instance
 
     def create(self, validated_data):
         user_data = validated_data.pop('user')
         user_data.pop('confirm_password', None)
 
-        user_role = user_data.pop('role', None)
+        user_role = user_data.pop('role', {'name': 'student'})
         role_name = user_role.get('name')
 
-        # role name should be student only
         if role_name != 'student':
             raise serializers.ValidationError({'name': "Role should be a student"})
         user_data['is_student'] = True
@@ -225,7 +369,6 @@ class StudentSerializer(serializers.ModelSerializer):
         user_data['email'] = Student.generate_student_email(user_data['first_name'], user_data['last_name'])
 
         user = CustomUser.objects.create_user(role=role, **user_data)
-
         student = Student.objects.create(user=user, **validated_data)
         return student
     

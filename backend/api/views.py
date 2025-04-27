@@ -4,13 +4,13 @@ from .models import (
     CustomUser, Role, Parent, Teacher, Student, 
     Subject, Class, Stream, Announcement, CatGrading, 
     Cats, Exam, ExamGrading, CatAndExam, StreamClassSubjects,
-    CatAndExamGrading, FinalGrade, ReportForm, Term
+    CatAndExamGrading, FinalGrade, ReportForm, Term, CustomUserAdmin
 )
 from .serializers import (
     CustomUserSerializer, RoleSerializer, TeacherSerializer, ParentSerializer, StudentSerializer,
     SubjectSerializer, ClassSerializer, StreamSerializer, AnnouncementSerializer, CatGradingSerializer, 
     CatSerializer, ExamSerializer, ExamGradingSerializer, CatAndExamSerailizer, StreamClassSubjectSerializer,
-    CatAndExamGradingSerializer, FinalGradeSerializer, ReportFormSerializer, TermSerializer
+    CatAndExamGradingSerializer, FinalGradeSerializer, ReportFormSerializer, TermSerializer, CustomUserAdminSerializer
 )
 
 from rest_framework import response, status, permissions
@@ -48,6 +48,28 @@ def user_login_view(request):
         if not user.check_password(password):
             return response.Response({'error': 'Error'}, status=status.HTTP_401_UNAUTHORIZED)
         
+        parent_profile_url = None
+        teacher_profile_url = None
+
+        # if user is a teacher, get the profile picture
+        if user.is_teacher:
+            try:
+                teacher_profile = user.teachers
+                if teacher_profile.profile_picture:
+                    teacher_profile_url = request.build_absolute_uri(teacher_profile.profile_picture.url)
+            except Teacher.DoesNotExist:
+                pass
+
+        # if user is parent, get the profile picture
+        if user.is_parent:
+            try:
+                parent_profile = user.parents
+                if parent_profile.profile_picture:
+                    parent_profile_url = request.build_absolute_uri(parent_profile.profile_picture.url)
+            except Parent.DoesNotExist:
+                pass
+
+        
         refresh = RefreshToken.for_user(user)
         access_token = str(refresh.access_token)
         refresh_token = str(refresh)
@@ -55,12 +77,15 @@ def user_login_view(request):
         return response.Response({
             'user_id': user.id,
             "user_email": user.email,
+            'first_letter': user.email[0].upper(),
             "access_token": access_token,
             "refresh_token": refresh_token,
             "is_admin": user.is_admin,
             "is_teacher": user.is_teacher,
             "is_parent": user.is_parent,
             "is_student": user.is_student,
+            'teacher_profile_picture': teacher_profile_url,
+            'parent_profile_picture': parent_profile_url,
         }, status=status.HTTP_200_OK)
     
     except CustomUser.DoesNotExist:
@@ -75,6 +100,44 @@ class IsAdmin(permissions.BasePermission):
 class IsAdminOrTeacher(permissions.BasePermission):
     def has_permission(self, request, view):
         return request.user.is_authenticated and (request.user.is_admin or request.user.is_teacher)
+
+# function view to enable a superadmin create other admins
+@api_view(['POST', 'GET'])
+@permission_classes([IsAdmin])
+def create_admin_view(request):
+    if request.method == 'POST':
+        serializer = CustomUserAdminSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return response.Response({'message': "Admin Created Successfully!"}, status=status.HTTP_201_CREATED)
+    elif request.method == 'GET':
+        admins = CustomUserAdmin.objects.all()
+        serializer = CustomUserAdminSerializer(admins, many=True)
+        return response.Response(serializer.data, status=status.HTTP_200_OK)
+    return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# superadmin function view to retreive and update an admin
+@api_view(['GET', 'PATCH', 'DELETE'])
+@permission_classes([IsAdmin])
+def retreive_update_delete_admin_view(request, pk):
+    try:
+        admin = CustomUserAdmin.objects.get(pk=pk)
+
+        if request.method == 'GET':
+            serializer = CustomUserAdminSerializer(admin)
+            return response.Response(serializer.data, status=status.HTTP_200_OK)
+        elif request.method == 'PATCH':
+            serializer = CustomUserAdminSerializer(admin, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return response.Response(serializer.data, status=status.HTTP_200_OK)
+        elif request.method == 'DELETE':
+            admin_name = admin.username
+            admin.delete()
+            return response.Response({'message': f'{admin_name} deleted succesfully'}, status=status.HTTP_204_NO_CONTENT)
+        return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except CustomUserAdmin.DoesNotExist:
+        return response.Response({'message': 'Admin does not exist!'}, status=status.HTTP_204_NO_CONTENT)
     
 # Create a role by an authenticated admin
 @api_view(['POST', 'GET'])
@@ -194,10 +257,15 @@ def retreive_update_delete_custom_user_view(request, role_id):
 class IsParent(permissions.BasePermission):
     def has_permission(self, request, view):
         return request.user.is_authenticated and request.user.is_parent
+    
+# view to create a student by a admin and a teacher
+class IsParentAdminTeacher(permissions.BasePermission):
+    def has_permission(self, request, view):
+        return request.user.is_authenticated and (request.user.is_admin or request.user.is_teacher or request.user.is_parent)
 
 # view to create and student
 @api_view(['POST'])
-@permission_classes([IsParent])
+@permission_classes([IsParentAdminTeacher])
 def create_student_view(request):
     serializer = StudentSerializer(data=request.data)
     if serializer.is_valid():
@@ -268,6 +336,20 @@ def retreive_teacher_targeted_announcements_view(request):
     announcements = Announcement.objects.filter(target_teachers=True)
     total = announcements.count()
     serailizer = AnnouncementSerializer(announcements, many=True)
+    # fetch the title
+    titles = []
+    for announcement in serailizer.data:
+        titles.append(announcement['title'])
+
+    # fetch the description
+    descriptions = []
+    for announcement in serailizer.data:
+        descriptions.append(announcement.get('description'))
+
+    # fetch the date
+    date_created = []
+    for announcement in serailizer.data:
+        date_created.append(announcement.get('date_created'))
     return response.Response({
         'message': 'Successful',
         'Total': total,
@@ -293,6 +375,20 @@ def retreive_student_targeted_announcements_view(request):
 @permission_classes([IsAdminTeacherAnnouncement])
 def retreive_parent_targeted_announcements_view(requeest):
     announcements = Announcement.objects.filter(target_parents=True)
+    total = announcements.count()
+    serializer = AnnouncementSerializer(announcements, many=True)
+
+    return response.Response({
+        'message': 'Successful',
+        'Total': total,
+        'Announcements': serializer.data
+    }, status=status.HTTP_200_OK)
+
+# admin targeted announcements
+@api_view(['GET'])
+@permission_classes([IsAdmin])
+def retreive_admin_targeted_announcements_view(request):
+    announcements = Announcement.objects.filter(target_admins=True)
     total = announcements.count()
     serializer = AnnouncementSerializer(announcements, many=True)
 
@@ -372,14 +468,19 @@ def create_cat_grade_view(request):
         return response.Response({'message': 'Cat Graded successfully!'}, status=status.HTTP_200_OK)
     return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-# permit a logged in teacher to create an exam
-@api_view(['POST'])
+# permit a logged in teacher and admin to create view exams
+@api_view(['POST', 'GET'])
 @permission_classes([IsAdminOrTeacher])
-def create_exam_view(request):
-    serializer = ExamSerializer(data=request.data, context={'request': request})
-    if serializer.is_valid():
-        serializer.save()
-        return response.Response({'message': 'Exam Created'}, status=status.HTTP_201_CREATED)
+def create_retreive_exam_view(request):
+    if request.method == 'POST':
+        serializer = ExamSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            serializer.save()
+            return response.Response({'message': 'Exam Created'}, status=status.HTTP_201_CREATED)
+    elif request.method == 'GET':
+        exams = Exam.objects.all()
+        serializer = ExamSerializer(exams, many=True)
+        return response.Response(serializer.data, status=status.HTTP_200_OK)
     return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 # permit a teacher to grade a student exam
@@ -454,7 +555,31 @@ def get_the_number_of_registered_teachers(request):
         'Total': total
     }, status=status.HTTP_200_OK)
 
-# function to ensure admin can view and chane teacher details
+# admin function to fetch all teachers
+@api_view(['GET'])
+@permission_classes([IsAdminOrTeacher])
+def fetch_all_teachers_view(request):
+    teachers = Teacher.objects.all()
+    serializer = TeacherSerializer(teachers, many=True, context={'request': request})
+    return response.Response(serializer.data, status=status.HTTP_200_OK)
+
+# admin function to fwtch all students
+@api_view(['GET'])
+@permission_classes([IsAdmin])
+def fetch_all_students_view(request):
+    students = Student.objects.all()
+    serializer = StudentSerializer(students, many=True, context={'request': request})
+    return response.Response(serializer.data, status=status.HTTP_200_OK)
+
+# admin function to fetch all parents
+@api_view(['GET'])
+@permission_classes([IsAdmin])
+def fetch_all_parents_view(request):
+    parents = Parent.objects.all()
+    serializer = ParentSerializer(parents, many=True, context={'request': request})
+    return response.Response(serializer.data, status=status.HTTP_200_OK)
+
+# function to ensure admin can view and change teacher details
 @api_view(['GET', 'PATCH', 'DELETE'])
 @permission_classes([IsAdmin])
 def retreive_update_destoy_teacher_info_view(request, pk):
@@ -486,40 +611,84 @@ def retreive_update_delete_student_info_view(request, pk):
         if request.method == 'GET':
             serializer = StudentSerializer(student)
             return response.Response(serializer.data, status=status.HTTP_200_OK)
+            
         elif request.method == 'PATCH':
-            serializer = StudentSerializer(student, data=request.data, partial=True)
+            # Make a mutable copy of request data
+            request_data = request.data.copy()
+            
+            # If user data is included, ensure we keep the existing username and email
+            if 'user' in request_data:
+                request_data['user']['username'] = student.user.username
+                request_data['user']['email'] = student.user.email
+                
+            serializer = StudentSerializer(
+                student, 
+                data=request_data, 
+                partial=True
+            )
+            
             if serializer.is_valid():
                 serializer.save()
                 return response.Response(serializer.data, status=status.HTTP_200_OK)
+            return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
         elif request.method == 'DELETE':
             student.delete()
             return response.Response({'message': 'Student Deleted'}, status=status.HTTP_204_NO_CONTENT)
-        return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
     except Student.DoesNotExist:
         return response.Response({'message': 'Student not found!'}, status=status.HTTP_404_NOT_FOUND)
 
 # function to ensure  an admin can view and update parent details
 @api_view(['GET', 'PATCH', 'DELETE'])
 @permission_classes([IsAdmin])
-def retreive_update_delete_parent_info_view(request, parent_code):
-    
+def retreive_update_delete_parent_info_view(request, pk):
     try:
-        parent = Parent.objects.get(parent_code=parent_code)
+        parent = Parent.objects.get(pk=pk)
 
         if request.method == 'GET':
             serializer = ParentSerializer(parent)
-            return response.Response(serializer.data, status=status.HTTP_200_OK)
+            return response.Response(serializer.data)
+            
         elif request.method == 'PATCH':
-            serializer = ParentSerializer(parent, data=request.data, partial=True)
+            # Handle multipart form data
+            data = request.data.dict() if hasattr(request.data, 'dict') else request.data
+            serializer = ParentSerializer(parent, data=data, partial=True)
+            
             if serializer.is_valid():
                 serializer.save()
-                return response.Response(serializer.errors, status=status.HTTP_200_OK)
+                return response.Response(serializer.data)  # Return the updated data, not errors
+            return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
         elif request.method == 'DELETE':
             parent.delete()
             return response.Response({'message': 'Parent Deleted Successfully!'}, status=status.HTTP_204_NO_CONTENT)
-        return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
     except Parent.DoesNotExist:
         return response.Response({'message': 'Parent Does not Exist!'}, status=status.HTTP_404_NOT_FOUND)
+    
+# function to allow an and and admin retreive and update exam details
+@api_view(['GET', 'PATCH', 'DELETE'])
+@permission_classes([IsAdminOrTeacher])
+def retreive_update_delete_exam_view(request, pk):
+    try:
+        exam = Exam.objects.get(pk=pk)
+        if request.method == 'GET':
+            serializer = ExamSerializer(exam)
+            return response.Response(serializer.data, status=status.HTTP_200_OK)
+        
+        elif request.method == 'PATCH':
+            serializer = ExamSerializer(exam, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return response.Response(serializer.data, status=status.HTTP_200_OK)
+        elif request.method == 'DELETE':
+            exam_name = exam.exam_name
+            exam.delete()
+            return response.Response({'message': f'{exam_name} deleted successfully!'}, status=status.HTTP_204_NO_CONTENT)
+        return response.Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except Exam.DoesNotExist:
+        return response.Response({'message': "Exam Does Not Exist!"}, status=status.HTTP_404_NOT_FOUND)
     
 # function to ensure admin can retreive and update a class
 @api_view(['GET', 'PATCH', 'DELETE'])
