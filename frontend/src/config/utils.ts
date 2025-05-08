@@ -780,3 +780,1008 @@ export const fetchAdminAnnouncements = async () => {
         }
     }
 }
+
+// function to allow an admin  create announcent
+export const createAnnouncement = async (
+    title: string,
+    description: string,
+    target_teachers: boolean,
+    target_admins: boolean,
+    target_parents: boolean,
+    target_students: boolean
+) => {
+    try {
+        const response = await axiosInstance.post(`${API_URL}/create_announcement/`, {
+            title: title,
+            description: description,
+            target_admins,
+            target_parents,
+            target_students,
+            target_teachers
+        });
+        return response.data;
+    } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+            console.error("Error creating Announcement", error.response?.data || error.message);
+            return error.response?.data || {error: "Error creating Announcement"};
+        } else {
+            console.error("Unknown error", error);
+            return {error: "Unknown Error"};
+        }
+    }
+}
+
+// function to view all exams 
+export const fetchExams = async () => {
+    try {
+        const response = await axiosInstance.get(`${API_URL}/create_exam_admin/`);
+        return response.data;
+    } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+            console.error("Error fetching exams", error.response?.data || error.message);
+            return error.response?.data || {error: "Error fetching exams"};
+        } else {
+            console.error("Unknown errror", error);
+            return {error: "Unknown error"};
+        }
+    }
+}
+
+// function to create an exam
+export const createExam = async (
+    exam_name: string,
+    content: string,
+    exam_class: string,
+    exam_stream: string,
+    subject: string,
+    duration: string,
+    date_done: string,
+    start_time: string,
+    exam_term: string
+) => {
+    try {
+        const response = await axiosInstance.post(`${API_URL}/create_exam_admin/`, {
+            exam_name: exam_name,
+            content: content,
+            exam_class: exam_class,
+            exam_stream: exam_stream,   
+            subject: subject,
+            duration: duration,
+            date_done: date_done,
+            start_time: start_time,
+            exam_term: exam_term     
+        });
+        return response.data;
+    } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+            console.error("Error Creating Exam", error.response?.data || error.message);
+            return error.response?.data || {error: "Error Creating Exam"};
+        } else {
+            console.error("Unknown Error Ocurred", error);
+            return {error: "Unknown Error Ocurred"};
+        }
+    }
+}
+
+// delete exam
+export const deleteExam = async (id: string) => {
+    try {
+        const response = await axiosInstance.delete(`${API_URL}/exam_info/${id}/`);
+        return response.data;
+    } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+            console.error("Error Deleting Exam", error.response?.data || error.message);
+            return error.response?.data || {error: "Error Deleting Exam"};
+        } else {
+            console.error("Unknown Error", error);
+            return {error: "Unknown Error"};
+        }
+    }
+}
+
+// retreive single exam
+export const singleExam = async (id: string) => {
+    try {
+        const response = await axiosInstance.get(`${API_URL}/exam_info/${id}/`);
+        return response.data;
+    } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+            console.error("Error retreiveng exam", error.response?.data || error.message);
+            return error.response?.data || {error: "Error retreiving exam"};
+        } else {
+            console.error("Unknown Error", error);
+            return {error: "Unknown Error"};
+        }
+    }
+}
+
+// update exam
+export const updateExam = async (
+    id: string,
+    exam_name: string,
+    content: string,
+    exam_class: string,
+    exam_stream: string,
+    subject: string,
+    duration: string,
+    date_done: string,
+    start_time: string,
+    exam_term: string
+) => {
+    try {
+        const response = await axiosInstance.patch(`${API_URL}/exam_info/${id}/`, {
+            exam_name: exam_name,
+            content: content,
+            exam_class: exam_class,
+            exam_stream: exam_stream,
+            subject: subject,
+            duration: duration,
+            date_done: date_done,
+            start_time: start_time,
+            exam_term: exam_term
+        });
+        return response.data;
+    } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+            console.error("Error updating exam", error.response?.data || error.message);
+            return error.response?.data || {error: "Error updating Exam"};
+        } else {
+            console.error("Unknown Error", error);
+            return {error: "Unknown Error"};
+        }
+    }
+}
+
+// Cat API
+// function to view all cats
+export const fetchCats = async () => {
+    try {
+        const response = await axiosInstance.get(`${API_URL}/create_cat_admin/`);
+        return response.data;
+    } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+            console.error("Error fetching cats", error.response?.data || error.message);
+            return error.response?.data || {error: "Error fetching cats"};
+        } else {
+            console.error("Unknown errror", error);
+            return {error: "Unknown error"};
+        }
+    }
+}
+
+// function to create a cat
+export const createCat = async (
+    cat_name: string,
+    content: string,
+    cat_class: string,
+    cat_stream: string,
+    subject: string,
+    duration: string,
+    date_done: string,
+    start_time: string,
+    cat_term: string
+) => {
+    try {
+        const response = await axiosInstance.post(`${API_URL}/create_cat_admin/`, {
+            cat_name: cat_name,
+            content: content,
+            cat_class: cat_class,
+            cat_stream: cat_stream,   
+            subject: subject,
+            duration: duration,
+            date_done: date_done,
+            start_time: start_time,
+            cat_term: cat_term     
+        });
+        return response.data;
+    } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+            console.error("Error Creating cat", error.response?.data || error.message);
+            return error.response?.data || {error: "Error Creating cat"};
+        } else {
+            console.error("Unknown Error Ocurred", error);
+            return {error: "Unknown Error Ocurred"};
+        }
+    }
+}
+
+// delete cat
+export const deleteCat = async (id: string) => {
+    try {
+        const response = await axiosInstance.delete(`${API_URL}/cat_info/${id}/`);
+        return response.data;
+    } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+            console.error("Error Deleting cat", error.response?.data || error.message);
+            return error.response?.data || {error: "Error Deleting cat"};
+        } else {
+            console.error("Unknown Error", error);
+            return {error: "Unknown Error"};
+        }
+    }
+}
+
+// retreive single cat
+export const singleCat = async (id: string) => {
+    try {
+        const response = await axiosInstance.get(`${API_URL}/cat_info/${id}/`);
+        return response.data;
+    } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+            console.error("Error retreiveng cat", error.response?.data || error.message);
+            return error.response?.data || {error: "Error retreiving cat"};
+        } else {
+            console.error("Unknown Error", error);
+            return {error: "Unknown Error"};
+        }
+    }
+}
+
+// update cat
+export const updateCat = async (
+    id: string,
+    cat_name: string,
+    content: string,
+    cat_class: string,
+    cat_stream: string,
+    subject: string,
+    duration: string,
+    date_done: string,
+    start_time: string,
+    cat_term: string
+) => {
+    try {
+        const response = await axiosInstance.patch(`${API_URL}/cat_info/${id}/`, {
+            cat_name: cat_name,
+            content: content,
+            cat_class: cat_class,
+            cat_stream: cat_stream,
+            subject: subject,
+            duration: duration,
+            date_done: date_done,
+            start_time: start_time,
+            cat_term: cat_term
+        });
+        return response.data;
+    } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+            console.error("Error updating cat", error.response?.data || error.message);
+            return error.response?.data || {error: "Error updating cat"};
+        } else {
+            console.error("Unknown Error", error);
+            return {error: "Unknown Error"};
+        }
+    }
+}
+
+// Subject Api
+// function to view all subjects
+export const fetchSubjects = async () => {
+    try {
+        const response = await axiosInstance.get(`${API_URL}/create_subject/`);
+        return response.data;
+    } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+            console.error("Error fetching subjects", error.response?.data || error.message);
+            return error.response?.data || {error: "Error fetching subjects"};
+        } else {
+            console.error("Unknown errror", error);
+            return {error: "Unknown error"};
+        }
+    }
+}
+
+// function to create a subject
+export const createSubject = async (
+    name: string
+) => {
+    try {
+        const response = await axiosInstance.post(`${API_URL}/create_subject/`, {
+            name: name   
+        });
+        return response.data;
+    } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+            console.error("Error Creating Subject", error.response?.data || error.message);
+            return error.response?.data || {error: "Error Creating subject"};
+        } else {
+            console.error("Unknown Error Ocurred", error);
+            return {error: "Unknown Error Ocurred"};
+        }
+    }
+}
+
+// delete subject
+export const deleteSubject = async (id: string) => {
+    try {
+        const response = await axiosInstance.delete(`${API_URL}/subject_info/${id}/`);
+        return response.data;
+    } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+            console.error("Error Deleting Subject", error.response?.data || error.message);
+            return error.response?.data || {error: "Error Deleting Subject"};
+        } else {
+            console.error("Unknown Error", error);
+            return {error: "Unknown Error"};
+        }
+    }
+}
+
+// retreive single subject
+export const singleSubject = async (id: string) => {
+    try {
+        const response = await axiosInstance.get(`${API_URL}/subject_info/${id}/`);
+        return response.data;
+    } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+            console.error("Error retreiveng subject", error.response?.data || error.message);
+            return error.response?.data || {error: "Error retreiving subject"};
+        } else {
+            console.error("Unknown Error", error);
+            return {error: "Unknown Error"};
+        }
+    }
+}
+
+// update subject
+export const updateSubject = async (
+    id: string,
+    name: string
+) => {
+    try {
+        const response = await axiosInstance.patch(`${API_URL}/subject_info/${id}/`, {
+            name: name,
+        });
+        return response.data;
+    } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+            console.error("Error updating subject", error.response?.data || error.message);
+            return error.response?.data || {error: "Error updating subject"};
+        } else {
+            console.error("Unknown Error", error);
+            return {error: "Unknown Error"};
+        }
+    }
+}
+
+// Class Api
+
+// function to view all classes
+export const fetchClasses = async () => {
+    try {
+        const response = await axiosInstance.get(`${API_URL}/create_class/`);
+        return response.data;
+    } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+            console.error("Error fetching classes", error.response?.data || error.message);
+            return error.response?.data || {error: "Error fetching classes"};
+        } else {
+            console.error("Unknown errror", error);
+            return {error: "Unknown error"};
+        }
+    }
+}
+
+// function to create a class
+export const createClass = async (
+    name: string
+) => {
+    try {
+        const response = await axiosInstance.post(`${API_URL}/create_class/`, {
+            name: name   
+        });
+        return response.data;
+    } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+            console.error("Error Creating Class", error.response?.data || error.message);
+            return error.response?.data || {error: "Error Creating class"};
+        } else {
+            console.error("Unknown Error Ocurred", error);
+            return {error: "Unknown Error Ocurred"};
+        }
+    }
+}
+
+// delete class
+export const deleteClass = async (id: string) => {
+    try {
+        const response = await axiosInstance.delete(`${API_URL}/class_info/${id}/`);
+        return response.data;
+    } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+            console.error("Error Deleting Class", error.response?.data || error.message);
+            return error.response?.data || {error: "Error Deleting Class"};
+        } else {
+            console.error("Unknown Error", error);
+            return {error: "Unknown Error"};
+        }
+    }
+}
+
+// retreive single class
+export const singleClass = async (id: string) => {
+    try {
+        const response = await axiosInstance.get(`${API_URL}/class_info/${id}/`);
+        return response.data;
+    } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+            console.error("Error retreiveng class", error.response?.data || error.message);
+            return error.response?.data || {error: "Error retreiving class"};
+        } else {
+            console.error("Unknown Error", error);
+            return {error: "Unknown Error"};
+        }
+    }
+}
+
+// update class
+export const updateClass = async (
+    id: string,
+    name: string
+) => {
+    try {
+        const response = await axiosInstance.patch(`${API_URL}/class_info/${id}/`, {
+            name: name,
+        });
+        return response.data;
+    } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+            console.error("Error updating class", error.response?.data || error.message);
+            return error.response?.data || {error: "Error updating class"};
+        } else {
+            console.error("Unknown Error", error);
+            return {error: "Unknown Error"};
+        }
+    }
+}
+
+// Stream Api
+
+// function to view all streams
+export const fetchStreams = async () => {
+    try {
+        const response = await axiosInstance.get(`${API_URL}/create_stream/`);
+        return response.data;
+    } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+            console.error("Error fetching streams", error.response?.data || error.message);
+            return error.response?.data || {error: "Error fetching streams"};
+        } else {
+            console.error("Unknown errror", error);
+            return {error: "Unknown error"};
+        }
+    }
+}
+
+// function to create a stream
+export const createStream = async (
+    class_name: string,
+    name: string
+) => {
+    try {
+        const response = await axiosInstance.post(`${API_URL}/create_stream/`, {
+            class_name: class_name,
+            name: name   
+        });
+        return response.data;
+    } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+            console.error("Error Creating Stream", error.response?.data || error.message);
+            return error.response?.data || {error: "Error Creating Stream"};
+        } else {
+            console.error("Unknown Error Ocurred", error);
+            return {error: "Unknown Error Ocurred"};
+        }
+    }
+}
+
+// delete stream
+export const deleteStream = async (id: string) => {
+    try {
+        const response = await axiosInstance.delete(`${API_URL}/stream_info/${id}/`);
+        return response.data;
+    } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+            console.error("Error Deleting Stream", error.response?.data || error.message);
+            return error.response?.data || {error: "Error Deleting Stream"};
+        } else {
+            console.error("Unknown Error", error);
+            return {error: "Unknown Error"};
+        }
+    }
+}
+
+// retreive single stream
+export const singleStream = async (id: string) => {
+    try {
+        const response = await axiosInstance.get(`${API_URL}/stream_info/${id}/`);
+        return response.data;
+    } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+            console.error("Error retreiveng stream", error.response?.data || error.message);
+            return error.response?.data || {error: "Error retreiving stream"};
+        } else {
+            console.error("Unknown Error", error);
+            return {error: "Unknown Error"};
+        }
+    }
+}
+
+// update stream
+export const updateStream = async (
+    id: string,
+    class_name: string,
+    name: string
+) => {
+    try {
+        const response = await axiosInstance.patch(`${API_URL}/stream_info/${id}/`, {
+            class_name: class_name,
+            name: name,
+        });
+        return response.data;
+    } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+            console.error("Error updating stream", error.response?.data || error.message);
+            return error.response?.data || {error: "Error updating stream"};
+        } else {
+            console.error("Unknown Error", error);
+            return {error: "Unknown Error"};
+        }
+    }
+}
+
+// CAT GRADING API
+
+// function to view all cat grades
+export const fetchCatGrades = async () => {
+    try {
+        const response = await axiosInstance.get(`${API_URL}/create_cat_grade/`);
+        return response.data;
+    } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+            console.error("Error fetching catGrades", error.response?.data || error.message);
+            return error.response?.data || {error: "Error fetching cat grades"};
+        } else {
+            console.error("Unknown errror", error);
+            return {error: "Unknown error"};
+        }
+    }
+}
+
+// function to create a cat grade
+export const createCatGrade = async (
+    cat_name: string,
+    student: string,
+    subject: string,
+    marks: string
+) => {
+    try {
+        const response = await axiosInstance.post(`${API_URL}/create_cat_grade/`, {
+            cat_name: cat_name,
+            student: student,
+            subject: subject,
+            marks: marks   
+        });
+        return response.data;
+    } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+            console.error("Error Creating CatGrades", error.response?.data || error.message);
+            return error.response?.data || {error: "Error Creating CatGrades"};
+        } else {
+            console.error("Unknown Error Ocurred", error);
+            return {error: "Unknown Error Ocurred"};
+        }
+    }
+}
+
+// delete cat grade
+export const deleteCatGrade = async (id: string) => {
+    try {
+        const response = await axiosInstance.delete(`${API_URL}/cat_grade_info/${id}/`);
+        return response.data;
+    } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+            console.error("Error Deleting CatGrade", error.response?.data || error.message);
+            return error.response?.data || {error: "Error Deleting CatGrade"};
+        } else {
+            console.error("Unknown Error", error);
+            return {error: "Unknown Error"};
+        }
+    }
+}
+
+// retreive single cat grade
+export const singleCatGrade = async (id: string) => {
+    try {
+        const response = await axiosInstance.get(`${API_URL}/cat_grade_info/${id}/`);
+        return response.data;
+    } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+            console.error("Error retreiveng catgrade", error.response?.data || error.message);
+            return error.response?.data || {error: "Error retreiving catgrade"};
+        } else {
+            console.error("Unknown Error", error);
+            return {error: "Unknown Error"};
+        }
+    }
+}
+
+// update cat grade
+export const updateCatGrade = async (
+    id: string,
+    cat_name: string,
+    student: string,
+    subject: string,
+    marks: string
+) => {
+    try {
+        const response = await axiosInstance.patch(`${API_URL}/cat_grade_info/${id}/`, {
+            cat_name: cat_name,
+            student: student,
+            subject: subject,
+            marks: marks
+        });
+        return response.data;
+    } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+            console.error("Error updating cat grade", error.response?.data || error.message);
+            return error.response?.data || {error: "Error updating cat grade"};
+        } else {
+            console.error("Unknown Error", error);
+            return {error: "Unknown Error"};
+        }
+    }
+}
+
+// EXAM GRADING API
+
+// function to view all exam grades
+export const fetchExamGrades = async () => {
+    try {
+        const response = await axiosInstance.get(`${API_URL}/create_exam_grade/`);
+        return response.data;
+    } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+            console.error("Error fetching examGrades", error.response?.data || error.message);
+            return error.response?.data || {error: "Error fetching exam grades"};
+        } else {
+            console.error("Unknown errror", error);
+            return {error: "Unknown error"};
+        }
+    }
+}
+
+// function to create an exam grade
+export const createExamGrade = async (
+    exam_name: string,
+    student: string,
+    subject: string,
+    marks: string
+) => {
+    try {
+        const response = await axiosInstance.post(`${API_URL}/create_exam_grade/`, {
+            exam_name: exam_name,
+            student: student,
+            subject: subject,
+            marks: marks   
+        });
+        return response.data;
+    } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+            console.error("Error Creating ExamGrades", error.response?.data || error.message);
+            return error.response?.data || {error: "Error Creating ExamGrades"};
+        } else {
+            console.error("Unknown Error Ocurred", error);
+            return {error: "Unknown Error Ocurred"};
+        }
+    }
+}
+
+// delete exam grade
+export const deleteExamGrade = async (id: string) => {
+    try {
+        const response = await axiosInstance.delete(`${API_URL}/exam_grade_info/${id}/`);
+        return response.data;
+    } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+            console.error("Error Deleting ExamGrade", error.response?.data || error.message);
+            return error.response?.data || {error: "Error Deleting ExamGrade"};
+        } else {
+            console.error("Unknown Error", error);
+            return {error: "Unknown Error"};
+        }
+    }
+}
+
+// retreive single exam grade
+export const singleExamGrade = async (id: string) => {
+    try {
+        const response = await axiosInstance.get(`${API_URL}/exam_grade_info/${id}/`);
+        return response.data;
+    } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+            console.error("Error retreiveng examgrade", error.response?.data || error.message);
+            return error.response?.data || {error: "Error retreiving examgrade"};
+        } else {
+            console.error("Unknown Error", error);
+            return {error: "Unknown Error"};
+        }
+    }
+}
+
+// update exam grade
+export const updateExamGrade = async (
+    id: string,
+    exam_name: string,
+    student: string,
+    subject: string,
+    marks: string
+) => {
+    try {
+        const response = await axiosInstance.patch(`${API_URL}/exam_grade_info/${id}/`, {
+            exam_name: exam_name,
+            student: student,
+            subject: subject,
+            marks: marks
+        });
+        return response.data;
+    } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+            console.error("Error updating exam grade", error.response?.data || error.message);
+            return error.response?.data || {error: "Error updating exam grade"};
+        } else {
+            console.error("Unknown Error", error);
+            return {error: "Unknown Error"};
+        }
+    }
+}
+
+// EXAM AND CAT API
+
+// function to view all exams and cats
+export const fetchCatsAndExams = async () => {
+    try {
+        const response = await axiosInstance.get(`${API_URL}/create_exam_and_cat/`);
+        return response.data;
+    } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+            console.error("Error fetching exams and cats", error.response?.data || error.message);
+            return error.response?.data || {error: "Error fetching exam and cats"};
+        } else {
+            console.error("Unknown errror", error);
+            return {error: "Unknown error"};
+        }
+    }
+}
+
+// function to create an exam and cat
+export const createCatAndExam = async (
+    class_name: string,
+    stream_name: string,
+    class_student: string,
+    subject: string
+) => {
+    try {
+        const response = await axiosInstance.post(`${API_URL}/create_exam_and_cat/`, {
+            class_name: class_name,
+            stream_name: stream_name,
+            class_student: class_student,
+            subject: subject
+        });
+        return response.data;
+    } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+            console.error("Error Creating ExamAndCat", error.response?.data || error.message);
+            return error.response?.data || {error: "Error Creating ExamAndcat"};
+        } else {
+            console.error("Unknown Error Ocurred", error);
+            return {error: "Unknown Error Ocurred"};
+        }
+    }
+}
+
+// delete exam and cat
+export const deleteCatAndExam = async (id: string) => {
+    try {
+        const response = await axiosInstance.delete(`${API_URL}/cat_and_exam_info/${id}/`);
+        return response.data;
+    } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+            console.error("Error Deleting CatAndExam", error.response?.data || error.message);
+            return error.response?.data || {error: "Error Deleting catAndExam"};
+        } else {
+            console.error("Unknown Error", error);
+            return {error: "Unknown Error"};
+        }
+    }
+}
+
+// retreive single exam and cat
+export const singleCatAndExamGrade = async (id: string) => {
+    try {
+        const response = await axiosInstance.get(`${API_URL}/cat_and_exam_info/${id}/`);
+        return response.data;
+    } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+            console.error("Error retreiveng catandexam", error.response?.data || error.message);
+            return error.response?.data || {error: "Error retreiving CatAndExam"};
+        } else {
+            console.error("Unknown Error", error);
+            return {error: "Unknown Error"};
+        }
+    }
+}
+
+// update exam and cat
+export const updateCatAndExam = async (
+    id: string,
+    class_name: string,
+    stream_name: string,
+    class_student: string,
+    subject: string,
+) => {
+    try {
+        const response = await axiosInstance.patch(`${API_URL}/cat_and_exam_info/${id}/`, {
+            class_name: class_name,
+            stream_name: stream_name,
+            class_student: class_student,
+            subject: subject,
+        });
+        return response.data;
+    } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+            console.error("Error updating catandexam", error.response?.data || error.message);
+            return error.response?.data || {error: "Error updating catandexam"};
+        } else {
+            console.error("Unknown Error", error);
+            return {error: "Unknown Error"};
+        }
+    }
+}
+
+
+// class stream subject API
+
+// function to view all classstream subject
+export const fetchStreamClassSubject = async () => {
+    try {
+        const response = await axiosInstance.get(`${API_URL}/create_class_stream_subject/`);
+        return response.data;
+    } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+            console.error("Error fetching class stream subject", error.response?.data || error.message);
+            return error.response?.data || {error: "Error fetching class stream subject"};
+        } else {
+            console.error("Unknown errror", error);
+            return {error: "Unknown error"};
+        }
+    }
+}
+
+// function to create a class stream subejct
+export const createStreamClassSubject = async (
+    student_code: string,
+    student_class: string,
+    student_stream: string,
+) => {
+    try {
+        const response = await axiosInstance.post(`${API_URL}/create_class_stream_subject/`, {
+            student_code: student_code,
+            student_class: student_class,
+            student_stream: student_stream,
+        });
+        return response.data;
+    } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+            console.error("Error Creating StreamClassSubject", error.response?.data || error.message);
+            return error.response?.data || {error: "Error Creating StreamClassSubject"};
+        } else {
+            console.error("Unknown Error Ocurred", error);
+            return {error: "Unknown Error Ocurred"};
+        }
+    }
+}
+
+// delete stream class subject
+export const deleteStreamClassSubject = async (id: string) => {
+    try {
+        const response = await axiosInstance.delete(`${API_URL}/class_stream_subject_info/${id}/`);
+        return response.data;
+    } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+            console.error("Error Deleting ", error.response?.data || error.message);
+            return error.response?.data || {error: "Error Deleting "};
+        } else {
+            console.error("Unknown Error", error);
+            return {error: "Unknown Error"};
+        }
+    }
+}
+
+// retreive single exam and cat
+export const singleStreamClassSubject = async (id: string) => {
+    try {
+        const response = await axiosInstance.get(`${API_URL}/class_stream_subject_info/${id}/`);
+        return response.data;
+    } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+            console.error("Error retreiveng", error.response?.data || error.message);
+            return error.response?.data || {error: "Error retreiving"};
+        } else {
+            console.error("Unknown Error", error);
+            return {error: "Unknown Error"};
+        }
+    }
+}
+
+// update stream class subject
+export const updateStreamClassSubject = async (
+    id: string,
+    student_code: string,
+    student_class: string,
+    student_stream: string,
+) => {
+    try {
+        const response = await axiosInstance.patch(`${API_URL}/class_stream_subject_info/${id}/`, {
+            student_code: student_code,
+            student_class: student_class,
+            student_stream: student_stream,
+        });
+        return response.data;
+    } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+            console.error("Error updating", error.response?.data || error.message);
+            return error.response?.data || {error: "Error updating"};
+        } else {
+            console.error("Unknown Error", error);
+            return {error: "Unknown Error"};
+        }
+    }
+}
+
+
+// Zoom Meeting API
+// create zoom meeting
+export const createZoomMeeting = async (
+  topic: string, 
+  duration: number,
+  start_date: string,
+  start_time: string
+) => {
+  try {
+    const response = await axiosInstance.post(`${API_URL}/zoom_meeting/`, {
+      topic: topic,
+      duration: duration,
+      start_date: start_date,
+      start_time: start_time
+    });
+
+    if (response.data.error) {
+      console.error("Zoom API Error:", response.data.error);
+      return { error: response.data.error };
+    }
+
+    return {
+      join_url: response.data.join_url,
+      meeting_id: response.data.meeting_id,
+      password: response.data.password,
+      start_time: response.data.start_time,
+      topic: response.data.topic
+    };
+
+  } catch (error: any) {
+    let errorMessage = "Failed to create meeting";
+    if (error.response) {
+      console.error("Server Error:", error.response.data);
+      errorMessage = error.response.data.error || errorMessage;
+    } else if (error.request) {
+      console.error("No Response:", error.request);
+      errorMessage = "No response from server";
+    } else {
+      console.error("Request Error:", error.message);
+      errorMessage = error.message;
+    }
+    return { error: errorMessage };
+  }
+};
+

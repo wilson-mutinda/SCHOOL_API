@@ -4,6 +4,7 @@ import DashboardSideBar from '../dashboard_sidebar/page'
 import Image from 'next/image'
 import Link from 'next/link'
 import { deleteAdmin, fetchAdmins } from '@/config/utils'
+import { FiArrowLeft } from 'react-icons/fi'
 
 interface Admin {
     id: string,
@@ -82,6 +83,14 @@ const AllAdminsPage = () => {
             <div className="bg-[#e6e6fa] sm:w-[75%] md:w-[80%]">
             {/* SEARCH BAR AND ADMIN TABLE */}
             <div className="p-4">
+                 {/* BACK BUTTON */}
+                <Link 
+                href="/Components/Dashboard" 
+                className="inline-flex items-center space-x-2 mb-2 text-blue-500 hover:text-blue-700 bg-green-500 hover:bg-yellow-300 rounded-lg p-3 transition-all duration-300 shadow-lg transform hover:scale-105"
+                >
+                <FiArrowLeft className="text-xl" />
+                <span className='text-white font-semibold'>Back</span>
+                </Link>
                 {/* SEARCH BAR */}
                 <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center ring-2 ring-yellow-300 hover:ring-blue-300 rounded-md p-2 gap-3">
@@ -137,7 +146,7 @@ const AllAdminsPage = () => {
                     ))}
                     {filteredAdmins.length === 0 &&(
                         <tr>
-                            <td colSpan={3} className='text-center text-red-500 font-semibold'>No Items Found</td>
+                            <td colSpan={3} className='text-center text-red-500 font-semibold'>No Matching Content</td>
                         </tr>
                     )}
                     </tbody>

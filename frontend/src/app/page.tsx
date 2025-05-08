@@ -11,6 +11,11 @@ const HomePage = () => {
           <h1 className="text-3xl font-bold text-gray-800">🏫 Bidii High School</h1>
           <p className="text-sm text-gray-700">"Knowledge is Power, Discipline is Key"</p>
         </div>
+        <Link href="/Components/registerForm">
+          <button className="bg-white text-yellow-600 font-semibold px-4 py-2 rounded shadow hover:bg-yellow-100 transition">
+            Register
+          </button>
+        </Link>
         <Link href="/Components/Login">
           <button className="bg-white text-yellow-600 font-semibold px-4 py-2 rounded shadow hover:bg-yellow-100 transition">
             Login
@@ -27,7 +32,7 @@ const HomePage = () => {
             <p className="text-lg mb-6">
               We nurture young minds with quality education, strong moral values, and a drive for excellence.
             </p>
-            <Link href="/Components/Login">
+            <Link href="/Components/registerForm">
               <button className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold px-6 py-3 rounded-lg transition">
                 Get Started
               </button>

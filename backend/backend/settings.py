@@ -128,7 +128,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Africa/Nairobi'
 
 USE_I18N = True
 
@@ -151,3 +151,7 @@ AUTH_USER_MODEL = 'api.CustomUser'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+ZOOM_CLIENT_ID = 'GVHIEeCTu2l2uLjZMSog'
+ZOOM_CLIENT_SECRET = 'bBNcLKVHjMzjrZwEPhAfmTcB5Urf6CWx'
+ZOOM_ACCOUNT_ID = 'RkYAJUOEQRCG4HaduIJyPg'

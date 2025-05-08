@@ -236,16 +236,18 @@ class Student(models.Model):
         return email
 
     def __str__(self):
-        return f'{self.user.username} - ({self.parent_code})'
+        return self.student_code
     
     def save(self, *args, **kwargs):
         if not self.student_code:
             self.student_code = self.generate_student_code()
 
-        # generate email if user is being created 
-        if not self.user_id:
-            self.user.email = self.generate_student_email(self.user.first_name, self.user.last_name)
+        # DO NOT override the user email here if it's already set
+        # if not self.user_id:
+        #     self.user.email = self.generate_student_email(self.user.first_name, self.user.last_name)
+
         super().save(*args, **kwargs)
+
     
 # Class models
 class Class(models.Model):
@@ -272,6 +274,9 @@ class Stream(models.Model):
         if not self.stream_name:
             self.stream_name = self.create_stream_name(self.class_name.name, self.name)
         super().save(*args, **kwargs)
+
+        class Meta:
+            unique_together = ('class_name', 'name')
 
 # Class Stream model
 class StreamClassSubjects(models.Model):
@@ -384,7 +389,7 @@ class Cats(models.Model):
         return f'C-{next_code:03d}'
 
     def __str__(self):
-        return f'{self.cat_name} done on {self.date_done} starting at {self.start_time}'
+        return self.cat_code
     
     def save(self, *args, **kwargs):
         if not self.cat_code:
@@ -423,24 +428,21 @@ class CatGrading(models.Model):
 
     # function to calculate the final grade
     def cat_grade(self):
-        marks = self.marks
-        total_marks = ((marks / 40) * 30)
+        if self.marks is None:
+            return 'N/A'  # or handle appropriately
+
+        total_marks = ((self.marks / 40) * 30)
 
         if total_marks >= 25:
             return 'A'
-        
         elif total_marks >= 20:
             return 'B'
-        
         elif total_marks >= 15:
-            return 'c'
-        
+            return 'C'
         elif total_marks >= 10:
             return 'D'
-        
         elif total_marks >= 5:
             return 'E'
-        
         else:
             return 'FAIL'
 
@@ -503,7 +505,7 @@ class Exam(models.Model):
         return f'E-{next_code:03d}'
 
     def __str__(self):
-        return f'{self.exam_name} - to be done on {self.date_done} at {self.start_time}'
+        return self.exam_code
     
     def save(self, *args, **kwargs):
         if not self.exam_code:
@@ -571,7 +573,7 @@ class ExamGrading(models.Model):
             self.grade = self.calculate_exam_grade()
         super().save(*args, **kwargs)
 
-# Grade both cat and exam and roduce a common grade
+# Grade both cat and exam and produce a common grade
 class CatAndExam(models.Model):
     class_name = models.ForeignKey(Class, on_delete=models.CASCADE, related_name='cat_and_exam')
     stream_name = models.ForeignKey(Stream, on_delete=models.CASCADE, related_name='cat_and_exam')

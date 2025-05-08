@@ -1,11 +1,16 @@
+
 'use client'
 import React, { useEffect, useState } from 'react'
 import DashboardSideBar from '../dashboard_sidebar/page'
 import DashboardNavBar from '../dashboard_navbar/page'
-import { fetchAdminAnnouncements, fetchParentAnouncements, fetchStudentAnnouncements, fetchTeacherAnnouncements, totalParents, totalStudents, totalTeachers } from '@/config/utils'
+import { createZoomMeeting, fetchAdminAnnouncements, fetchParentAnouncements, fetchStudentAnnouncements, fetchTeacherAnnouncements, totalParents, totalStudents, totalTeachers } from '@/config/utils'
 import Image from 'next/image'
+import Link from 'next/link'
+import { FiMessageSquare, FiBell, FiCalendar, FiUsers, FiBook, FiHome, FiSettings, FiPhoneCall, FiCameraOff, FiCamera, FiUnderline, FiWatch, FiZap, FiZoomOut, FiX, FiCircle, FiGitCommit, FiFacebook } from 'react-icons/fi'
+import MeetingForm from '../meetingForm/page'
 
 const DashboardPage = () => {
+  // ... (keep all existing state declarations)
   const [students, setStudents] = useState('');
   const [parents, setParents] = useState('');
   const [teachers, setTeachers] = useState('');
@@ -164,132 +169,319 @@ const DashboardPage = () => {
       setTeachers(data.Total);
     }
     fetchTeacherTotal();
-  }, [])
+  }, []);
+
+  const [role, setRole] = useState("");
+
+useEffect(() => {
+  const fetchUserRole = () => {
+    const isAdmin = localStorage.getItem("is_admin") === "true";
+    const isTeacher = localStorage.getItem("is_teacher") === "true";
+    const isParent = localStorage.getItem("is_parent") === "true";
+    const isStudent = localStorage.getItem("is_student") === "true";
+
+    if (isAdmin) {
+      setRole("admin");
+    } else if (isTeacher) {
+      setRole("teacher");
+    } else if (isParent) {
+      setRole("parent");
+    } else if (isStudent) {
+      setRole("student");
+    } else {
+      setRole("unknown");
+    }
+  };
+
+  fetchUserRole();
+}, []);
 
   return (
-    <div className='bg-yellow-100 min-h-screen'>
-        {/* RIGTH AND LEFT SECTION */}
-        <div className="flex flex-col sm:flex-row min-h-screen">
-            {/* LEFT SECTION */}
-            <div className="bg-[#dcdcdc] sm:w-[25%] md:w-[20%]">
-                <DashboardSideBar/>
-            </div>
-            {/* RIGHT SECTION */}
-            <div className="bg-[#e6e6fa] sm:w-[75%] md:w-[80%]">
-                {/* NAVBAR AND PAGE DETAILS */}
-                <div className="">
-                  {/* NAVBAR */}
-                  <div className="">
-                    <DashboardNavBar/>
+    <div className='bg-gray-50 min-h-screen'>
+      <div className="flex flex-col lg:flex-row min-h-screen">
+        {/* Sidebar - keep as is */}
+        <div className="bg-indigo-800 lg:w-64 p-4 text-white">
+          <DashboardSideBar/>
+        </div>
+        
+        {/* Main Content Area */}
+        <div className="flex-1 overflow-hidden">
+          {/* Navbar */}
+          <div className="bg-white shadow-sm">
+            <DashboardNavBar/>
+          </div>
+          
+          {/* Dashboard Content */}
+          <div className="p-6">
+            {error && (
+              <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded">
+                <p>{error}</p>
+              </div>
+            )}
+            
+            {/* Header with Quick Actions */}
+<div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
+  <div>
+    <h1 className="text-2xl font-bold text-gray-800">Dashboard Overview</h1>
+    <p className="text-gray-600">Welcome back! Here's what's happening today.</p>
+  </div>
+
+  <div className="flex gap-3 mt-4 md:mt-0">
+
+    {/* Show "New Meeting" to Admin and Teacher only */}
+    {(role === "admin" || role === "teacher") && (
+      <Link href="/Components/meetingForm">
+        <button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
+          <span className="w-5 h-5 text-gray-200">
+            <FiCalendar />
+          </span>
+          <span>New Meeting</span>
+        </button>
+      </Link>
+    )}
+
+    {/* Show "New Announcement" to Admin and Teacher only */}
+    {(role === "admin" || role === "teacher") && (
+      <Link href="/Components/announcementForm">
+        <button className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors">
+          <span className="w-5 h-5 text-gray-400">
+            <FiBell />
+          </span>
+          <span>New Announcement</span>
+        </button>
+      </Link>
+    )}
+    
+  </div>
+</div>
+
+            
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-500 uppercase tracking-wider">Total Students</p>
+                    <h3 className="text-3xl font-bold mt-2 text-gray-800">{students}</h3>
+                    <p className="text-sm text-gray-500 mt-1">Registered students</p>
                   </div>
-                  {/* PAGE DETAILS */}
-                  <div className="">
-                  {error && (
-                    <p className='text-red-500 text-center p-2'>{error}</p>
-                  )}
-                    {/* LEFT AND RIGHT SECTION */}
-                    <div className="flex items-center justify-between flex-col md:flex-row">
-                      {/* LEFT */}
-                      <div className="w-[65%]">
-                        {/* USERS INFO AND REPORTS */}
-                        <div className="">
-                          {/* USERS */}
-                          <div className="flex items-center justify-between gap-3 p-3">
-                            {/* PARENT DIV */}
-                            <div className="bg-blue-400 rounded-md p-4">
-                              <h3 className='font-semibold text-gray-500'>Parents Info</h3>
-                              <h4 className='font-semibold'>Total = {parents}</h4>
-                            </div>
-                            {/* STUDENT DIV */}
-                            <div className="bg-blue-400 rounded-md p-4">
-                              <h3 className='font-semibold text-gray-500'>Students Info</h3>
-                              <h4 className='font-semibold'>Total = {students}</h4>
-                            </div>
-                            {/* TEACHER DIV */}
-                            <div className="bg-blue-400 rounded-md p-4">
-                              <h3 className='font-semibold text-gray-500'>Teachers Info</h3>
-                              <h4 className='font-semibold'>Total = {teachers}</h4>
-                            </div>
-                          </div>
-                          {/* REPORTS */}
-                          <div className="">report</div>
-                        </div>
-                      </div>
-                      {/* RIGHT */}
-                      <div className="w-[35%]">
-                        <h3 className='font-bold mt-3 mb-2 text-center text-rose-800 underline'>Announcements</h3>
-                        {/* TEACHER BASED */}
-                        <div className="bg-yellow-300 rounded-md p-2 mb-2">
-                          <h3 className="text-lg font-bold mb-2">Teacher Announcements</h3>
-                          {teacherAnnouncement.Announcements.map((announcement, index) => (
-                            <div key={index} className="bg-white p-2 mb-2 rounded shadow">
-                              <div className="flex items-center justify-between">
-                                <div>
-                                  <h4 className="font-semibold">{index + 1}. {announcement.title}</h4> {/* numbering */}
-                                  <p className="text-sm text-gray-600">{announcement.description}</p> {/* description */}
-                                  <p className="text-xs text-gray-400">{new Date(announcement.date_created).toLocaleString()}</p> {/* formatted date */}
-                                </div>
-                                <Image src='/option.png' alt='' width={20} height={20} />
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                        {/* PARENT BASED */}
-                        <div className="bg-blue-300 rounded-md p-2 mb-2">
-                          <h3 className='text-lg font-bold mb-2'>Parent Announcements</h3>
-                          {parentAnnouncements.Announcements.map((announcement, index) => (
-                            <div key={index} className="bg-white p-2 mb-2 rounded shadow">
-                              <div className="flex items-center justify-between">
-                                <div className="">
-                                  <h4 className='font-semibold'>{index + 1}. {announcement.title}</h4>
-                                  <p className='text-sm text-gray-600'>{announcement.description}</p>
-                                  <p className='text-xs text-gray-400'>{new Date(announcement.date_created).toLocaleString()}</p>
-                                </div>
-                                <Image src='/option.png' alt='' width={20} height={20} />
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                        {/* STUDENT BASED */}
-                        <div className="bg-green-400 rounded-md p-2 mb-2">
-                          <h3 className='text-lg font-bold mb-2'>Student Announcements</h3>
-                          {studentAnnouncements.Announcements.map((student_announcement, index) => (
-                            <div key={index} className="bg-white p-2 mb-2 rounded shadow">
-                              <div className="flex items-center justify-between">
-                                <div className="">
-                                  <h4 className='font-semibold'>{index + 1}. {student_announcement.title}</h4>
-                                  <p className='text-sm text-gray-600'>{student_announcement.description}</p>
-                                  <p className='text-xs text-gray-400'>{new Date(student_announcement.date_created).toLocaleString()}</p>
-                                </div>
-                                <Image src='/option.png' alt='' width={20} height={20} />
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                        {/* ADMIN BASED */}
-                        <div className="bg-gray-600 rounded-md p-2 mb-2">
-                          <h3 className='text-lg font-bold mb-2'>Admin Announcements</h3>
-                          {adminAnnouncements.Announcements.map((announcements, index) => (
-                            <div key={index} className="bg-white p-2 mb-2 rounded shadow">
-                              <div className="flex items-center justify-between">
-                                <div className="">
-                                  <h4 className='font-semibold'>{index + 1}. {announcements.title}</h4>
-                                  <p className='text-sm text-gray-500'>{announcements.description}</p>
-                                  <p className='text-xs text-gray-600'>{new Date(announcements.date_created).toLocaleString()}</p>
-                                </div>
-                                <Image src='/option.png' alt='' width={20} height={20} />
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
+                  <div className="p-3 rounded-full bg-blue-50 text-blue-600">
+                    <span  className="w-6 h-6 text-gray-400">
+                      <FiUsers />
+                    </span>
                   </div>
                 </div>
+              </div>
+              
+              <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-500 uppercase tracking-wider">Total Parents</p>
+                    <h3 className="text-3xl font-bold mt-2 text-gray-800">{parents}</h3>
+                    <p className="text-sm text-gray-500 mt-1">Registered parents</p>
+                  </div>
+                  <div className="p-3 rounded-full bg-green-50 text-green-600">
+                    <span  className="w-6 h-6 text-gray-400">
+                      <FiUsers />
+                    </span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-500 uppercase tracking-wider">Total Teachers</p>
+                    <h3 className="text-3xl font-bold mt-2 text-gray-800">{teachers}</h3>
+                    <p className="text-sm text-gray-500 mt-1">Registered teachers</p>
+                  </div>
+                  <div className="p-3 rounded-full bg-purple-50 text-purple-600">
+                    <span  className="w-6 h-6 text-gray-400">
+                      <FiUsers />
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
-        </div>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+  {/* Teacher Announcements */}
+  {(role === 'admin' || role === 'teacher') && (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-gradient-to-r from-yellow-500 to-yellow-400 p-4">
+        <h3 className="text-lg font-bold text-white flex items-center gap-2">
+          <span className="w-6 h-6 text-gray-400">
+            <FiBook />
+          </span>
+          Teacher Announcements
+        </h3>
+      </div>
+      <div className="p-4 space-y-4 max-h-96 overflow-y-auto">
+        {teacherAnnouncement.Announcements.length > 0 ? (
+          teacherAnnouncement.Announcements.map((announcement, index) => (
+            <div key={index} className="border-b border-gray-100 pb-4 last:border-b-0">
+              <div className="flex justify-between items-start">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">
+                      #{index + 1}
+                    </span>
+                    <h4 className="font-semibold text-gray-800">{announcement.title}</h4>
+                  </div>
+                  <p className="text-sm text-gray-600 mt-2">{announcement.description}</p>
+                  <p className="text-xs text-gray-400 mt-2">
+                    {new Date(announcement.date_created).toLocaleString()}
+                  </p>
+                </div>
+                <button className="text-gray-400 hover:text-gray-600">
+                  <Image src="/option.png" alt="Options" width={20} height={20} />
+                </button>
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="text-center py-8">
+            <p className="text-gray-500">No teacher announcements found</p>
+          </div>
+        )}
+      </div>
     </div>
-  )
+  )}
+
+  {/* Parent Announcements */}
+  {(role === 'admin' || role === 'parent') && (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-gradient-to-r from-blue-500 to-blue-400 p-4">
+        <h3 className="text-lg font-bold text-white flex items-center gap-2">
+          <span className="w-6 h-6 text-gray-400">
+            <FiHome />
+          </span>
+          Parent Announcements
+        </h3>
+      </div>
+      <div className="p-4 space-y-4 max-h-96 overflow-y-auto">
+        {parentAnnouncements.Announcements.length > 0 ? (
+          parentAnnouncements.Announcements.map((announcement, index) => (
+            <div key={index} className="border-b border-gray-100 pb-4 last:border-b-0">
+              <div className="flex justify-between items-start">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                      #{index + 1}
+                    </span>
+                    <h4 className="font-semibold text-gray-800">{announcement.title}</h4>
+                  </div>
+                  <p className="text-sm text-gray-600 mt-2">{announcement.description}</p>
+                  <p className="text-xs text-gray-400 mt-2">
+                    {new Date(announcement.date_created).toLocaleString()}
+                  </p>
+                </div>
+                <button className="text-gray-400 hover:text-gray-600">
+                  <Image src="/option.png" alt="Options" width={20} height={20} />
+                </button>
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="text-center py-8">
+            <p className="text-gray-500">No parent announcements found</p>
+          </div>
+        )}
+      </div>
+    </div>
+  )}
+
+  {/* Student Announcements */}
+  {(role === 'admin' || role === 'student') && (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-gradient-to-r from-green-500 to-green-400 p-4">
+        <h3 className="text-lg font-bold text-white flex items-center gap-2">
+          <span className="w-6 h-6 text-gray-400">
+            <FiBook />
+          </span>
+          Student Announcements
+        </h3>
+      </div>
+      <div className="p-4 space-y-4 max-h-96 overflow-y-auto">
+        {studentAnnouncements.Announcements.length > 0 ? (
+          studentAnnouncements.Announcements.map((announcement, index) => (
+            <div key={index} className="border-b border-gray-100 pb-4 last:border-b-0">
+              <div className="flex justify-between items-start">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                      #{index + 1}
+                    </span>
+                    <h4 className="font-semibold text-gray-800">{announcement.title}</h4>
+                  </div>
+                  <p className="text-sm text-gray-600 mt-2">{announcement.description}</p>
+                  <p className="text-xs text-gray-400 mt-2">
+                    {new Date(announcement.date_created).toLocaleString()}
+                  </p>
+                </div>
+                <button className="text-gray-400 hover:text-gray-600">
+                  <Image src="/option.png" alt="Options" width={20} height={20} />
+                </button>
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="text-center py-8">
+            <p className="text-gray-500">No student announcements found</p>
+          </div>
+        )}
+      </div>
+    </div>
+  )}
+
+  {/* Admin Announcements */}
+  {role === 'admin' && (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-gradient-to-r from-gray-700 to-gray-600 p-4">
+        <h3 className="text-lg font-bold text-white flex items-center gap-2">
+          <span className="w-6 h-6 text-gray-400">
+            <FiSettings />
+          </span>
+          Admin Announcements
+        </h3>
+      </div>
+      <div className="p-4 space-y-4 max-h-96 overflow-y-auto">
+        {adminAnnouncements.Announcements.length > 0 ? (
+          adminAnnouncements.Announcements.map((announcement, index) => (
+            <div key={index} className="border-b border-gray-100 pb-4 last:border-b-0">
+              <div className="flex justify-between items-start">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium bg-gray-100 text-gray-800 px-2 py-1 rounded-full">
+                      #{index + 1}
+                    </span>
+                    <h4 className="font-semibold text-gray-800">{announcement.title}</h4>
+                  </div>
+                  <p className="text-sm text-gray-600 mt-2">{announcement.description}</p>
+                  <p className="text-xs text-gray-400 mt-2">
+                    {new Date(announcement.date_created).toLocaleString()}
+                  </p>
+                </div>
+                <button className="text-gray-400 hover:text-gray-600">
+                  <Image src="/option.png" alt="Options" width={20} height={20} />
+                </button>
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="text-center py-8">
+            <p className="text-gray-500">No admin announcements found</p>
+          </div>
+        )}
+      </div>
+    </div>
+  )}
+</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )  
 }
 
 export default DashboardPage

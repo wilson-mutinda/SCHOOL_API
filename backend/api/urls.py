@@ -52,13 +52,33 @@ urlpatterns = [
     # retreive and update term
     path('term_info/<str:name>/', views.retreive_update_delete_term_view, name='term_info'),
     # retreive update cat
-    path('cat_details_admin/<str:cat_code>/', views.retreive_update_delete_cat_admin_view, name='cat_details_admin'),
+    path('cat_info/<int:pk>/', views.retreive_update_delete_cat_admin_view, name='cat_info'),
     # retreive reportform
     path('report_form_admin_info/<str:student_code>/', views.retreive_update_delete_reportform_admin_view, name='report_form_admin'),
     # create an exam
     path('create_exam_admin/', views.create_retreive_exam_view, name='exam_admin'),
+    # subject info
+    path('subject_info/<int:pk>/', views.retreive_update_delete_subject_view, name='subject_info'),
+    # create a cat
+    path('create_cat_admin/', views.create_cat_view, name='cat_admin'),
     # retreive all exams
-    path('all_exams/', views.retreive_update_delete_exam_view, name='all_exams'),
+    path('exam_info/<int:pk>/', views.retreive_update_delete_exam_view, name='all_exams'),
+    # create zoom meeting
+    path('zoom_meeting/', views.create_meeting, name='zoom_meeting'),
+    # retreive update delete cat results
+    path('cat_grade_info/<int:pk>/', views.retreive_update_delete_cat_grade_view, name='cat_grade_info'),
+    # retreive update delete exam results
+    path('exam_grade_info/<int:pk>/', views.retreive_update_delete_exam_grade_view, name='exam_grade_info'),
+    # catand exam info
+    path('cat_and_exam_info/<int:pk>/', views.retreive_update_delete_exam_and_cat_view, name='cat_and_exam_info'),
+    # cat and exam grading info
+    path('cat_and_exam_grade_info/<int:pk>/', views.retreive_update_delete_cat_and_exam_grade_view, name='cat_and_exam_grade_info'),
+    # class stream subject info
+    path('class_stream_subject_info/<int:pk>/', views.retreive_update_delete_class_stream_subject_view, name='class_stream_subject_info'),
+    # final_grade info
+    path('final_grade_info/<int:pk>/', views.retreive_update_delete_final_grade_view, name='final_grade_info'),
+    # report form view
+    path('report_form_info/<int:pk>/', views.retreive_update_delete_final_grade_view, name='report_form_info'),
 
     # Teacher Roles
     # Techer to creaate announcement
@@ -67,6 +87,10 @@ urlpatterns = [
     path('student_results/<str:student>/', views.get_student_exam_marks_admin_teacher_view, name='student_results'),
     # create exam
     path('create_exam_teacher/', views.create_retreive_exam_view, name='exam_teacher'),
+    # class info
+    path('class_info/<int:pk>/', views.retreive_update_delete_class_view, name='class_info'),
+    # stream_info
+    path('stream_info/<int:pk>/', views.retreive_update_delete_stream_view, name='stream_info'),
 
     path('create_teacher/', views.create_teacher_view, name='teacher'),
     path('create_parent/', views.create_parent_view, name='parent'),
@@ -80,7 +104,7 @@ urlpatterns = [
     path('create_exam_grade/', views.create_exam_grade_view, name='exam_grade'),
     path('create_exam_and_cat/', views.create_exam_and_cat_view, name='exam_and_cat'),
     path('create_class_stream_subject/', views.create_class_stream_subject_view, name='class_stream_subject'),
-    path('create_overall_subject_grade/', views.create_overall_subject_grade_view, name='overall_suject_grade'),
+    path('create_overall_subject_grade/', views.create_overall_subject_grade_view, name='overall_subject_grade'),
     path('create_final_grade/', views.create_final_grade_view, name='final_grade'),
     path('create_report_form/', views.create_report_form_view, name='report_form'),
     path('teacher_info/<int:pk>/', views.retreive_update_destoy_teacher_info_view, name='teacher_info'),
@@ -89,5 +113,5 @@ urlpatterns = [
     path('report_form_teacher_admin/<str:student_code>/', views.retreive_update_delete_report_form_admin_teacher_view, name='report_form_admin_teacher'),
     path('report_form_parent/<str:student_code>/', views.retreive_update_delete_report_form_parent_view, name='report_form_parent'),
     path('class_info/<int:pk>/', views.retreive_update_delete_class_view, name='class_info'),
-    path('stream_info/<int:pk>/', views.retreive_update_delete_stream_info_view, name='stream_info'),
+    path('stream_info/<int:pk>/', views.retreive_update_delete_stream_view, name='stream_info'),
 ]

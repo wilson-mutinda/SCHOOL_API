@@ -84,6 +84,7 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     if (teacherId) {
       await updateTeacher(teacherId, formData, token);
       alert('Teacher updated successfully!');
+      router.push('/Components/AllTeachers');
     } else {
       // For create, all required fields must be included
       formData.append('user.role.name', 'teacher');
@@ -100,9 +101,8 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         token
       );
       alert('Teacher created successfully!');
+      router.push('/Components/Login')
     }
-
-    router.push('/Components/AllTeachers');
   } catch (error: any) {
     console.error('Detailed error:', error);
     alert(error.message || 'Something went wrong. Please check console for details.');
@@ -112,7 +112,7 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
 //   handle close
 const handleClose = async () => {
     setClose(true);
-    router.push('/Components/AllTeachers')
+    router.push('/Components/registerForm')
 }
 
   return (

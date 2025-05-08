@@ -77,6 +77,7 @@ const ParentForm = () => {
                 // Update mode
                 await updateParent(parentId, formData, token);
                 alert("Parent updated successfully!");
+                router.push('/Components/AllParents');
             } else {
                 // Create mode
                 await createParent(
@@ -84,9 +85,8 @@ const ParentForm = () => {
                     phone, profilePicture, address, token
                 );
                 alert("Parent created successfully!");
+                router.push('/Components/Login');
             }
-    
-            router.push('/Components/AllParents');
         } catch (error: any) {
             console.error('Detailed error:', error);
             alert(error.message || "Something went wrong.");
@@ -96,7 +96,7 @@ const ParentForm = () => {
     //   handle close
     const handleClose = async () => {
         setClose(true);
-        router.push('/Components/AllParents')
+        router.push('/Components/registerForm')
     }
 
   return (

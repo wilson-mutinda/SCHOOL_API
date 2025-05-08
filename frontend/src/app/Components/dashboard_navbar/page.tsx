@@ -1,11 +1,13 @@
+
 'use client'
 import { fetchRoles, totalStudents } from '@/config/utils'
 import Image from 'next/image'
 import Link from 'next/link'
 import React, { useEffect, useState } from 'react'
+import { FiSearch, FiMessageSquare, FiBell, FiChevronDown } from 'react-icons/fi'
 
 const DashboardNavBar = () => {
-
+  // ... (keep all existing state declarations)
   const [error, setError] = useState<string | null>(null);
   const [students, setStudents] = useState('');
   const [letter, setLetter] = useState<string | null>(null);
@@ -78,80 +80,106 @@ const DashboardNavBar = () => {
   }, []);
 
   return (
-    <div>
-      {/* SEARCH BAR, LINKS, PERSONAL DETAILS */}
-      <div className="p-2 flex justify-between items-center w-full bg-[#ffffe0]">
-        {/* SEARCH BAR */}
-        <div className="flex items-center gap-3 p-2 ring-2 ring-blue-300 rounded-md hover:ring-yellow-300 w-full md:w-auto">
-          <Image src='/search.png' alt='' width={20} height={20} className='w-6 h-6'/>
-          <input type="text" name="search" placeholder="Search here..." className='bg-transparent outline-none' />
-        </div>
-        {/* LINKS */}
-        <div className="hidden md:flex items-center justify-between gap-3">
-          {/* ADMINS */}
-          <div className="">
-            <Link href='/Components/AllAdmins'>
-              <span className='font-semibold'>Admins</span>
-            </Link>
-          </div>
-          {/* TEACHERS */}
-          <div className="">
-            <Link href='/Components/AllTeachers'>
-              <span className='font-semibold'>Teachers</span>
-            </Link>
-          </div>
-          {/* PARENTS */}
-          <div className="">
-            <Link href='/Components/AllParents'>
-              <span className='font-semibold'>Parents</span>
-            </Link>
-          </div>
-          {/* STUDENTS */}
-          <div className="">
-            <Link href='/Components/AllStudents'>
-              <span className='font-semibold'>Students</span>
-            </Link>
-          </div>
-          {/* EXAMS */}
-          <div className="">
-            <Link href='/Components/Exams'>
-              <span className='font-semibold'>Exams</span>
-            </Link>
-          </div>
-          {/* RESULTS */}
-          <div className="">
-            <Link href='/'>
-              <span className='font-semibold'>Results</span>
-            </Link>
-          </div>
-          {/* ROLES */}
-          <div className="">
-            <Link href='/Components/AllRoles'>
-              <span className='font-semibold'>Roles</span>
-            </Link>
+    <div className="bg-white border-b border-gray-200">
+      <div className="px-6 py-3 flex items-center justify-between">
+        {/* Search Bar */}
+        <div className="flex-1 max-w-md">
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <span className="h-5 w-5 text-gray-400">
+              <FiSearch />
+            </span>
+
+            </div>
+            <input
+              type="text"
+              placeholder="Search..."
+              className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+            />
           </div>
         </div>
-        {/* PERSONAL DETAILS */}
-        <div className="hidden md:block">
-          {/* AVATAR, USER, ICON */}
-            <div className="flex items-center justify-between gap-4">
-              {/* MESSAGE */}
-            <div className="">
-              <Image src='/message.png' alt='' width={20} height={20} className='w-8 h-8'/>
-            </div>
-            {/* ANNOUNCEMENT */}
-            <div className="">
-              <Image src='/announcement.png' alt='' width={20} height={20} className='w-8 h-8'/>
-            </div>
-            {/* AVATAR */}
-            <div className="">
-              <Image src={picture} alt='' width={20} height={20} className='w-10 h-10 rounded-full'/>
-              <span className='text-sm font-semibold text-gray-600'>{role}</span>
-            </div>
-            {/* ICON */}
-            <div className="">
-              <div className="bg-green-400 h-9 w-9 rounded-full relative"/>
-              <span className='absolute top-7 right-5 font-bold'>{letter}</span>
+        
+        {/* Navigation Links */}
+        <div className="hidden lg:flex items-center space-x-8 ml-10">
+          {(role === 'admin' || role === 'Teacher') && (
+            <Link href='/Components/AllAdmins' className="text-sm font-medium text-gray-700 hover:text-indigo-600 transition-colors">
+              Admins
+            </Link>
+          )}
+
+          {(role === 'admin' || role === 'Teacher') && (
+            <Link href='/Components/AllTeachers' className="text-sm font-medium text-gray-700 hover:text-indigo-600 transition-colors">
+              Teachers
+            </Link>
+          )}
+
+          {(role === 'admin' || role === 'Teacher' || role === 'Parent') && (
+            <Link href='/Components/AllParents' className="text-sm font-medium text-gray-700 hover:text-indigo-600 transition-colors">
+              Parents
+            </Link>
+          )}
+
+          {(role === 'admin' || role === 'Teacher' || role === 'Student' || role === 'Parent') && (
+            <Link href='/Components/AllStudents' className="text-sm font-medium text-gray-700 hover:text-indigo-600 transition-colors">
+              Students
+            </Link>
+          )}
+
+          {(role === 'admin' || role === 'Teacher' || role === 'Student') && (
+            <Link href='/Components/AllCats' className="text-sm font-medium text-gray-700 hover:text-indigo-600 transition-colors">
+              Cats
+            </Link>
+          )}
+
+          {(role === 'admin' || role === 'Teacher' || role === 'Student') && (
+            <Link href='/Components/AllExams' className="text-sm font-medium text-gray-700 hover:text-indigo-600 transition-colors">
+              Exams
+            </Link>
+          )}
+
+          {(role === 'admin' || role === 'Teacher' || role === 'Student') && (
+            <Link href='/Components/AllSubjects' className="text-sm font-medium text-gray-700 hover:text-indigo-600 transition-colors">
+              Subjects
+            </Link>
+          )}
+        </div>
+        
+        {/* User Profile Section */}
+        <div className="ml-4 flex items-center md:ml-6">
+          <button className="p-1 rounded-full text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+            <span className="sr-only">View notifications</span>
+            <span className='h-5 w-5 text-gray-400'>
+              <FiBell />
+            </span>
+          </button>
+          
+          <button className="p-1 rounded-full text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ml-4">
+            <span className="sr-only">View messages</span>
+            <span className='h5 w-5 text-gray-400'>
+              <FiMessageSquare/>
+            </span>
+          </button>
+          
+          {/* Profile dropdown */}
+          <div className="ml-4 relative">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <Image 
+                  src={picture} 
+                  alt="User profile" 
+                  width={32} 
+                  height={32} 
+                  className="rounded-full"
+                />
+              </div>
+              <div className="ml-3">
+                <div className="text-sm font-medium text-gray-700">{role}</div>
+              </div>
+              <button className="ml-2 text-gray-400 hover:text-gray-500 focus:outline-none">
+                <span  className="h-5 w-5 text-gray-400">
+                  <FiChevronDown />
+                </span>
+              </button>
             </div>
           </div>
         </div>

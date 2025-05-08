@@ -60,6 +60,7 @@ const AdminForm = () => {
           return;
         }
         alert ("Admin Updated Successfully");
+        router.push('/Components/AllAdmins')
       } else {
         // Create mode
         const response = await createAdmin(first_name, last_name, username, email, password, confirmPassword, token);
@@ -68,8 +69,8 @@ const AdminForm = () => {
           return;
         }
         alert ('Admin Created Successfully!')
+        router.push('/Components/Login')
       }
-      router.push('/Components/AllAdmins')
     } catch (error: any) {
       console.error("Unknown Error", error);
       alert(error.message || "Something Went Wrong")
@@ -79,7 +80,7 @@ const AdminForm = () => {
   //   handle close
   const handleClose = async () => {
     setClose(true);
-    router.push('/Components/AllAdmins')
+    router.push('/Components/registerForm')
 }
   return (
     <div className='max-w-4xl mx-auto p-6 bg-white shadow-2xl rounded-2xl mt-10 relative'>

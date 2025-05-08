@@ -4,6 +4,7 @@ import DashboardSideBar from '../dashboard_sidebar/page'
 import Image from 'next/image'
 import Link from 'next/link'
 import { deleteStudent, fetchStudents } from '@/config/utils'
+import { FiArrowLeft } from 'react-icons/fi'
 
 interface User {
   first_name: string
@@ -83,6 +84,14 @@ const AllStudentsPage = () => {
 
         <div className="bg-[#e6e6fa] sm:w-[75%] md:w-[80%] p-4">
           <div className="flex items-center justify-between mb-4">
+             {/* BACK BUTTON */}
+             <Link 
+              href="/Components/Dashboard" 
+              className="inline-flex items-center space-x-2 mb-2 text-blue-500 hover:text-blue-700 bg-green-500 hover:bg-yellow-300 rounded-lg p-3 transition-all duration-300 shadow-lg transform hover:scale-105"
+            >
+              <FiArrowLeft className="text-xl" />
+              <span className='text-white font-semibold'>Back</span>
+            </Link>
             <div className="flex items-center ring-2 ring-yellow-300 hover:ring-blue-300 rounded-md p-2 gap-3">
               <Image src='/search.png' alt='Search' width={20} height={20} className='w-6 h-6' />
               <input

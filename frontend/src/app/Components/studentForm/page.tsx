@@ -71,12 +71,12 @@ const StudentForm = () => {
       if (!studentId) {
         await createStudent(payload, token);
         alert('Student created successfully!');
+        router.push('/Components/Login')
       } else {
         await updateStudent(studentId, payload, token);
         alert('Student updated successfully!');
+        router.push('/Components/AllStudents');
       }
-  
-      router.push('/Components/AllStudents');
     } catch (error: any) {
       console.error('Detailed error:', error);
       alert(error.response?.data?.message || error.message || 'Something went wrong.');
@@ -86,7 +86,7 @@ const StudentForm = () => {
 
   return (
     <div className="max-w-4xl mx-auto p-6 bg-white shadow-2xl rounded-2xl mt-10 relative">
-      <button onClick={() => router.push('/Components/AllStudents')} className="absolute right-3 top-2 rounded-full bg-red-500 p-2">
+      <button onClick={() => router.push('/Components/registerForm')} className="absolute right-3 top-2 rounded-full bg-red-500 p-2">
         <Image src="/close.png" alt="" width={20} height={20} />
       </button>
       <h2 className="text-2xl font-semibold mb-6 text-center">

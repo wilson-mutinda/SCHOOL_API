@@ -19,17 +19,25 @@ const loginPage = () => {
     }
 
     // Const handle login
-    const handleLogin = async (e:React.FormEvent) => {
+    const handleLogin = async (e: React.FormEvent) => {
       e.preventDefault();
-
+    
       const result = await loginUser(email, password);
-
+    
       if (result.success) {
-        router.push('/Components/Dashboard')
+        const { role_code } = result.data;
+    
+        if (role_code) {
+          alert(`Login successful. Your code is: ${role_code}`);
+        }
+    
+        router.push('/Components/Dashboard');
       } else {
-        alert(result.error || 'Login Failed')
+        alert(result.error || 'Login Failed');
       }
     };
+ 
+    
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-yellow-100 to-blue-100">
